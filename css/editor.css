@@ -1,0 +1,238 @@
+@import url('https://fonts.googleapis.com/css2?family=Atkinson+Hyperlegible+Mono:ital,wght@0,200..800;1,200..800&display=swap');
+
+body {
+    background: black;
+    color: white;
+    color-scheme: dark;
+    --slightgray: rgba(255,255,255,.2);
+    --accent: #a2f624;
+}
+
+.fh-editor {
+    width: 100vw;
+    height: 100vh;
+    top: 0;
+    left: 0;
+    position: absolute;
+    display: flex;
+    font-size: 12px;
+    --editor-font: 'Atkinson Hyperlegible Mono', Courier, sans-serif;
+    overflow: hidden;
+}
+
+.fh-toolbar *,
+.fh-inspector *,
+.fh-slides-container * {
+    -webkit-touch-callout: none;
+    -webkit-user-select: none;
+     -khtml-user-select: none;
+       -moz-user-select: none;
+        -ms-user-select: none;
+            user-select: none;
+}
+
+.fh-editor-overlay textarea,
+.fh-inspector textarea,
+.fh-inspector input {
+    box-sizing: border-box;
+    background: inherit;
+    color: inherit;
+    font-size: inherit;
+    font-family: var(--editor-font);
+    outline: none;
+    border: 1px solid gray;
+}
+.fh-editor-overlay textarea:focus,
+.fh-inspector textarea:focus,
+.fh-inspector input:focus {
+    border: 1px solid var(--accent);
+}
+
+.fh-slides-container {
+    border-right: 1px dotted gray;
+    flex-shrink: 0;
+    box-sizing: border-box;
+    display: flex;
+    flex-direction: column;
+    overflow-y: auto;
+    --preview-width: 100;
+    --preview-padding: 15;
+    --inset-margin: 20;
+}
+.fh-slide-preview-container {
+    position: relative;
+    width: calc(1px * (var(--preview-width) + (var(--preview-padding) * 2)));
+}
+.fh-slide-preview-container label {
+    position: absolute;
+    left: calc(1px * var(--preview-padding));
+    bottom: 0;
+    font-family: var(--editor-font);
+}
+.fh-slide-preview {
+    position: relative;
+    width: 100%;
+    background: white;
+    color: black;
+    border: 1px solid gray;
+    box-sizing: border-box;
+    pointer-events: none;
+    transform-origin: 0 0;
+    -webkit-transform-origin: 0 0;
+    -moz-transform-origin: 0 0;
+    -o-transform-origin: 0 0;
+    overflow: hidden;
+}
+
+.fh-slide-preview-container.selected  {
+    background: gray;
+}
+.focused .fh-slide-preview-container.selected {
+    background: var(--accent);
+    color: black;
+}
+.fh-slide-preview-container.dragging,
+.fh-slide-preview-container.dragging.selected {
+    background: transparent;
+}
+.dragging .fh-slide-preview {
+    background: transparent;
+    border-left: 1em solid var(--accent);
+}
+.dragging .fh-slide-preview * {
+    display: none;
+}
+.dragging label {
+    display: none;
+}
+
+.fh-toolbar {
+    display: flex;
+    width: 100%;
+    gap: 1.5em;
+    padding: 1em;
+    justify-content: space-between;
+    align-items: center;
+    box-sizing: border-box;
+    border-bottom: 1px dotted gray;
+    font-family: var(--editor-font);
+}
+.fh-toolbar button,
+.fh-inspector button {
+    font-family: inherit;
+    font-size: inherit;
+    border: 1px solid transparent;
+    background: none;
+    padding: 0;
+}
+.fh-toolbar button:hover,
+.fh-inspector button:hover {
+    background: var(--slightgray);
+}
+.fh-toolbar button:active,
+.fh-inspector button:active {
+    border-color: gray;
+}
+.fh-toolbar button:focus,
+.fh-inspector button:focus {
+    outline: none;
+    border: 1px solid var(--accent);
+}
+.fh-toolbar button.selected {
+    background: var(--accent);
+    color: black;
+}
+
+.fh-game-container {
+    width: 100%;
+    position: relative;
+    overflow: hidden;
+}
+.fh-game-container .fh-game {
+    background: white;
+    color: black;
+}
+.fh-editor-overlay {
+    color-scheme: normal;
+    color: black;
+    position: absolute;
+    top: 50%;
+    left: 50%;
+    transform: translate(-50%, -50%);
+    z-index: 1;
+    --handle-stroke-width: 2;
+    --handle-color: gray;
+    --focused-handle-color: var(--accent);
+    --handle-hover-color: orange;
+}
+.focused .fh-editor-overlay {
+    --handle-color: var(--focused-handle-color);
+}
+.fh-editor-clickzone {
+    position: absolute;
+    border: 1px solid transparent;
+    box-sizing: border-box;
+}
+.fh-editor-clickzone:hover,
+.fh-editor-clickzone.selected {
+    border-color: gray;
+}
+.fh-editor-clickzone:hover::after {
+    content: attr(name);
+    position: absolute;
+    top: 100%;
+    left: 0;
+    margin-top: 5px;
+    background: white;
+    color: black;
+    font-family: var(--editor-font);
+}
+.fh-element-handle {
+    position: absolute;
+    top: 0;
+    left: 0;
+    pointer-events: none;
+    cursor: move;
+    width: 100%;
+    height: 100%;
+    display: none;
+}
+.fh-element-handle * {
+    pointer-events: auto;
+}
+
+.fh-inspector {
+    width: 250px;
+    flex-shrink: 0;
+    border-left: 1px dotted gray;
+    font-family: var(--editor-font);
+    padding: 1em;
+    box-sizing: border-box;
+    overflow: hidden;
+    overflow-y: auto;
+}
+.fh-inspector ul {
+    list-style-type: none;
+    padding-left: 1.5em;
+    word-break: break-all;
+}
+.fh-inspector > ul {
+    padding-left: 0;
+}
+.fh-inspector summary:focus {
+    border: 1px solid var(--accent);
+}
+.fh-inspector .file {
+    display: flex;
+    gap: 5px;
+}
+.fh-inspector .icon {
+    display: block;
+    width: 1em;
+    height: 1em;
+    flex-shrink: 0;
+}
+.fh-inspector .file:hover,
+.fh-inspector .folder summary:hover {
+    background-color: var(--slightgray);
+}

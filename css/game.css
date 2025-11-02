@@ -1,0 +1,51 @@
+body, html {
+    margin: 0;
+    width: 100vw;
+    height: 100vh;
+}
+
+.fh-game {
+    position: absolute;
+    top: 50%;
+    left: 50%;
+    transform: translate(-50%, -50%);
+    width: 100%;
+    height: 100%;
+    overflow: hidden;
+}
+
+.fh-element {
+    position: absolute;
+    transform-origin: 0 0;
+    -webkit-transform-origin: 0 0;
+    -moz-transform-origin: 0 0;
+    -o-transform-origin: 0 0;
+}
+.fh-clickzone {
+    position: absolute;
+    cursor: pointer;
+    z-index: 1;
+}
+.fh-clickzone:hover {
+    border: 1px solid gray;
+}
+.fh-clickzone:active {
+    border: 1px solid greenyellow;
+}
+
+.fh-slide {
+    position: absolute;
+    top: 0;
+    left: 0;
+    width: 100%;
+    height: 100%;
+    display: none;
+    z-index: 2;
+}
+.fh-slide.open {
+    display: block;
+}
+
+.hidden {
+    display: none;
+}
