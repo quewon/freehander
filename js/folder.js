@@ -1,24 +1,30 @@
+const supportedMediaFormats = [
+    "image/jpeg",
+    "image/jpg",
+    "image/png",
+    "image/webp",
+    "audio/mpeg",
+    "audio/x-m4a",
+    "audio/wav",
+    "audio/ogg",
+    "audio/aiff",
+    "video/mp4",
+    "video/webm",
+    "video/quicktime",
+]
+const formatConverter = {
+    "video/quicktime": "video/mp4",
+}
+
 var assetFolderElement;
-var supportedImageFormats = ["jpg", "jpeg", "png", "gif"];
-var supportedAudioFormats = ["mp3", "wav", "ogg"];
 
 function loadAssetFolder(files, element) {
     assetFolderElement = element;
-    clearAssetFolder();
+    assetFolderElement.innerHTML = "";
     var structure = getFolderStructure(files);
     var userFolder = createFolderElement(element, Object.keys(structure)[0], structure);
     userFolder.querySelector("details").open = true;
     userFolder.querySelector("summary").focus();
-}
-
-function clearAssetFolder() {
-    if (assetFolderElement)
-        assetFolderElement.innerHTML = "";
-    // for (let sprite of allSprites()) {
-    //     if (sprite.src && !sprite.src.includes("_preset/")) {
-    //         sprite.loaded = false;
-    //     }
-    // }
 }
 
 function getFolderStructure(files) {
@@ -39,21 +45,16 @@ function getFolderStructure(files) {
             }
             current = current[dirName].children;
         }
-        const filename = pathParts[pathParts.length - 1];
-        const filenameParts = filename.split(".");
-        const ext = filenameParts[filenameParts.length - 1].toLowerCase();
-        if (supportedImageFormats.includes(ext)) {
-            current[filename] = { 
-                kind: "image", 
+
+        const kind = file.type.split("/")[0];
+        if (supportedMediaFormats.includes(file.type) || kind === "text") {
+            current[file.name] = {
+                kind: "file",
+                type: kind,
+                format: kind === "text" ? "text/plain" : file.type,
                 path: file.webkitRelativePath || file.path,
                 file: file
-            };
-        } else if (supportedAudioFormats.includes(ext)) {
-            current[filename] = { 
-                kind: "audio",
-                path: file.webkitRelativePath || file.path,
-                file: file
-            };
+            }
         }
     };
     return structure;
@@ -67,13 +68,8 @@ function createFolderElement(parentElement, directoryName, parent) {
         createFolderElement(list, name, parent[directoryName].children);
     }
     for (const name in parent[directoryName].children) {
-        switch (parent[directoryName].children[name].kind) {
-            case "image":
-                createImageFileElement(list, name, parent[directoryName].children);
-                break;
-            case "audio":
-                createAudioFileElement(list, name, parent[directoryName].children);
-                break;
+        if (parent[directoryName].children[name].kind === "file") {
+            createFileElement(list, name, parent[directoryName].children, parent[directoryName].children[name].type, parent[directoryName].children[name].format);
         }
     }
     return createElement({
@@ -96,56 +92,46 @@ function createFolderElement(parentElement, directoryName, parent) {
     })
 }
 
-function createAudioFileElement(parentElement, filename, parent) {
+function createFileElement(parentElement, filename, parent, type, format) {
     const file = parent[filename].file;
+    var url;
+    if (type === "text") {
+        var reader = new FileReader();
+        reader.readAsText(file, "UTF-8");
+        reader.onload = function (e) {
+            el.appendChild(
+                createElement({
+                    tagName: "div",
+                    name: "text",
+                    style: "display: none",
+                    textContent: e.target.result
+                })
+            )
+        }
+    } else {
+        url = URL.createObjectURL(file);
+    }
     const el = createElement({
         tagName: "li",
         className: "file",
         parent: parentElement,
-        title: "audio file",
-        dataset: {
-            filepath: parent[filename].path,
-            url: URL.createObjectURL(file),
-            type: "audio"
-        },
-        children: [
-            createElement({
-                tagName: "span",
-                className: "icon",
-                style: `background-image: url(_preset/music.png)`
-            }),
-            createElement({
-                tagName: "span",
-                textContent: filename
-            })
-        ]
-    });
-    return el;
-}
-
-function createImageFileElement(parentElement, filename, parent) {
-    const file = parent[filename].file;
-    const url = URL.createObjectURL(file);
-    const el = createElement({
-        tagName: "li",
-        className: "file",
-        parent: parentElement,
-        title: "image file",
+        title: type + " file",
         dataset: {
             filepath: parent[filename].path,
             url: url,
-            type: "image"
+            type: type,
+            format: formatConverter[format] || format
         },
         children: [
             createElement({
                 tagName: "span",
                 className: "icon",
-                style: `background-image: url(${url})`
+                style: `background-image: url(${url});`
             }),
             createElement({
                 tagName: "span",
                 textContent: filename
-            })
+            }),
         ]
     });
     return el;
@@ -156,7 +142,7 @@ function createElement(o) {
     for (let property in o) {
         if (["parent", "children", "dataset", "tagName", "value"].includes(property))
             continue;
-        if (["list"].includes(property)) {
+        if (["list", "name"].includes(property)) {
             element.setAttribute(property, o[property]);
         } else {
             element[property] = o[property];

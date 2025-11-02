@@ -58,8 +58,10 @@ class Editor extends Game {
                 return;
             }
 
-            this.shiftKey = e.key === "Shift";
-            this.metaKey = e.key === "Meta" || e.key === "Ctrl";
+            if (e.key === "Shift")
+                this.shiftKey = true;
+            if (e.key === "Meta" || e.key === "Ctrl")
+                this.metaKey = true;
 
             if (e.key === "Delete" || e.key === "Backspace") {
                 if (this.slidesContainer.classList.contains("focused")) {
@@ -96,6 +98,66 @@ class Editor extends Game {
                         break;
                 }
             }
+
+            const selectedClickzone = this.editorOverlay.querySelector(".selected");
+            if (selectedClickzone) {
+                const element = this.openElements[selectedClickzone.getAttribute("name")].element;
+                if (this.metaKey && e.code === "KeyC") {
+                    //copy
+                    navigator.clipboard.writeText(element.innerHTML);
+                    this.copiedElement = element;
+                    e.preventDefault();
+                } else if (this.metaKey && e.code === "KeyX") {
+                    //cut
+                    navigator.clipboard.writeText(element.innerHTML);
+                    this.copiedElement = element;
+                    this.deleteElement(element);
+                    e.preventDefault();
+                } else if (this.metaKey && e.code === "KeyD") {
+                    //duplicate
+                    const newElement = this.createElement(0, 0, 0, 0, element.innerHTML);
+                    this.updateElementPoints(newElement, this.openElements[selectedClickzone.getAttribute("name")].handle.points);
+                    var name = element.getAttribute("name") + "*";
+                    var nameExists = true;
+                    while (nameExists) {
+                        nameExists = false;
+                        for (let child of this.currentSlide.children) {
+                            if (child !== newElement && child.getAttribute("name") === name) {
+                                name = name + "*";
+                                nameExists = true;
+                            }
+                        }
+                    }
+                    this.renameElement(newElement, name);
+                    e.preventDefault();
+                }
+            }
+
+            if (this.metaKey && e.code === "KeyV") {
+                //paste
+                navigator.clipboard.readText()
+                .then(text => {
+                    const element = this.createElement(0, 0, 0, 0, text);
+                    if (this.copiedElement) {
+                        var name = this.copiedElement.getAttribute("name");
+                        var nameExists = true;
+                        while (nameExists) {
+                            nameExists = false;
+                            for (let child of this.currentSlide.children) {
+                                if (child !== element && child.getAttribute("name") === name) {
+                                    name = name + "*";
+                                    nameExists = true;
+                                }
+                            }
+                        }
+                        this.renameElement(element, name);
+                        var points = this.createElementPointsArray(this.copiedElement);
+                        this.updateElementPoints(element, points);
+                        this.setElementCenter(element, [50, 50]);
+                    }
+                })
+                e.preventDefault();
+            }
         })
         document.addEventListener("keyup", e => {
             if (e.key === "Shift")
@@ -126,14 +188,14 @@ class Editor extends Game {
             if (Math.abs(mousedownPosition[0] - e.pageX) + Math.abs(mousedownPosition[1] - e.pageY) > 3) {
                 this.editorOverlay.appendChild(box);
             }
-            const rect = this.editorOverlay.getBoundingClientRect();
+            const rect = this.cachedGameRect;
             var min = [
-                (Math.min(mousedownPosition[0], e.pageX) - rect.left) / this.gameElement.offsetWidth * 100, 
-                (Math.min(mousedownPosition[1], e.pageY) - rect.top) / this.gameElement.offsetHeight * 100
+                (Math.min(mousedownPosition[0], e.pageX) - rect.left) / rect.width * 100, 
+                (Math.min(mousedownPosition[1], e.pageY) - rect.top) / rect.height * 100
             ];
             var max = [
-                (Math.max(mousedownPosition[0], e.pageX) - rect.left) / this.gameElement.offsetWidth * 100, 
-                (Math.max(mousedownPosition[1], e.pageY) - rect.top) / this.gameElement.offsetHeight * 100,
+                (Math.max(mousedownPosition[0], e.pageX) - rect.left) / rect.width * 100, 
+                (Math.max(mousedownPosition[1], e.pageY) - rect.top) / rect.height * 100,
             ];
             box.style.left = min[0] + "%";
             box.style.top = min[1] + "%";
@@ -168,11 +230,11 @@ class Editor extends Game {
 
     doodlemodeMousedown(e) {
         const padding = 5;
-        const gameRect = this.gameElement.getBoundingClientRect();
+        const gameRect = this.cachedGameRect;
         var canvasRect = [e.pageX - gameRect.left, e.pageY - gameRect.top, 0, 0];
         const element = this.createElement(
-            canvasRect[0] / this.gameElement.offsetWidth * 100,
-            canvasRect[1] / this.gameElement.offsetHeight * 100,
+            canvasRect[0] / gameRect.width * 100,
+            canvasRect[1] / gameRect.height * 100,
             0, 0,
             `<svg width="0" height="0" xmlns="http://www.w3.org/2000/svg"><path d="" fill="none" stroke="black" stroke-width="1"></path></svg>`
         )
@@ -194,10 +256,10 @@ class Editor extends Game {
                 min[1] - canvasRect[1]
             ]
             this.updateElementPoints(element, [
-                [(min[0] - padding) / this.gameElement.offsetWidth * 100, (min[1] - padding) / this.gameElement.offsetHeight * 100],
-                [(max[0] + padding) / this.gameElement.offsetWidth * 100, (min[1] - padding) / this.gameElement.offsetHeight * 100],
-                [(max[0] + padding) / this.gameElement.offsetWidth * 100, (max[1] + padding) / this.gameElement.offsetHeight * 100],
-                [(min[0] - padding) / this.gameElement.offsetWidth * 100, (max[1] + padding) / this.gameElement.offsetHeight * 100]
+                [(min[0] - padding) / this.cachedGameRect.width * 100, (min[1] - padding) / this.cachedGameRect.height * 100],
+                [(max[0] + padding) / this.cachedGameRect.width * 100, (min[1] - padding) / this.cachedGameRect.height * 100],
+                [(max[0] + padding) / this.cachedGameRect.width * 100, (max[1] + padding) / this.cachedGameRect.height * 100],
+                [(min[0] - padding) / this.cachedGameRect.width * 100, (max[1] + padding) / this.cachedGameRect.height * 100]
             ]);
             canvasRect = [min[0], min[1], (max[0] - min[0]), (max[1] - min[1])];
 
@@ -222,10 +284,10 @@ class Editor extends Game {
                 return;
             }
             this.updateElementPoints(element, [
-                [(canvasRect[0] - padding) / this.gameElement.offsetWidth * 100, (canvasRect[1] - padding) / this.gameElement.offsetHeight * 100],
-                [(canvasRect[2] + canvasRect[0] + padding) / this.gameElement.offsetWidth * 100, (canvasRect[1] - padding) / this.gameElement.offsetHeight * 100],
-                [(canvasRect[2] + canvasRect[0] + padding) / this.gameElement.offsetWidth * 100, (canvasRect[3] + canvasRect[1] + padding) / this.gameElement.offsetHeight * 100],
-                [(canvasRect[0] - padding) / this.gameElement.offsetWidth * 100, (canvasRect[3] + canvasRect[1] + padding) / this.gameElement.offsetHeight * 100]
+                [(canvasRect[0] - padding) / this.cachedGameRect.width * 100, (canvasRect[1] - padding) / this.cachedGameRect.height * 100],
+                [(canvasRect[2] + canvasRect[0] + padding) / this.cachedGameRect.width * 100, (canvasRect[1] - padding) / this.cachedGameRect.height * 100],
+                [(canvasRect[2] + canvasRect[0] + padding) / this.cachedGameRect.width * 100, (canvasRect[3] + canvasRect[1] + padding) / this.cachedGameRect.height * 100],
+                [(canvasRect[0] - padding) / this.cachedGameRect.width * 100, (canvasRect[3] + canvasRect[1] + padding) / this.cachedGameRect.height * 100]
             ]);
             document.removeEventListener("mousemove", mousemoveEvent);
             document.removeEventListener("mouseup", mouseupEvent);
@@ -246,14 +308,14 @@ class Editor extends Game {
         box.style.boxSizing = "border-box";
         this.editorOverlay.appendChild(box);
         const mousemoveEvent = (e) => {
-            const rect = this.editorOverlay.getBoundingClientRect();
+            const rect = this.cachedGameRect;
             var min = [
-                (Math.min(mousedownPosition[0], e.pageX) - rect.left) / this.gameElement.offsetWidth * 100, 
-                (Math.min(mousedownPosition[1], e.pageY) - rect.top) / this.gameElement.offsetHeight * 100
+                (Math.min(mousedownPosition[0], e.pageX) - rect.left) / rect.width * 100, 
+                (Math.min(mousedownPosition[1], e.pageY) - rect.top) / rect.height * 100
             ];
             var max = [
-                (Math.max(mousedownPosition[0], e.pageX) - rect.left) / this.gameElement.offsetWidth * 100, 
-                (Math.max(mousedownPosition[1], e.pageY) - rect.top) / this.gameElement.offsetHeight * 100,
+                (Math.max(mousedownPosition[0], e.pageX) - rect.left) / rect.width * 100, 
+                (Math.max(mousedownPosition[1], e.pageY) - rect.top) / rect.height * 100,
             ];
             box.style.left = min[0] + "%";
             box.style.top = min[1] + "%";
@@ -261,26 +323,18 @@ class Editor extends Game {
             box.style.height = (max[1] - min[1]) + "%";
         }
         const mouseupEvent = (e) => {
-            const rect = this.gameElement.getBoundingClientRect();
+            const rect = this.cachedGameRect;
             var x, y, w, h;
             var sizeSet = false;
             if (Math.abs(mousedownPosition[0] - e.pageX) + Math.abs(mousedownPosition[1] - e.pageY) > 3) {
-                var min = [
-                    (Math.min(mousedownPosition[0], e.pageX) - rect.left) / this.gameElement.offsetWidth * 100, 
-                    (Math.min(mousedownPosition[1], e.pageY) - rect.top) / this.gameElement.offsetHeight * 100
-                ];
-                var max = [
-                    (Math.max(mousedownPosition[0], e.pageX) - rect.left) / this.gameElement.offsetWidth * 100, 
-                    (Math.max(mousedownPosition[1], e.pageY) - rect.top) / this.gameElement.offsetHeight * 100,
-                ];
                 x = parseFloat(box.style.left);
                 y = parseFloat(box.style.top);
                 w = parseFloat(box.style.width);
                 h = parseFloat(box.style.height);
                 sizeSet = true;
             } else {
-                x = (mousedownPosition[0] - rect.left) / this.gameElement.offsetWidth * 100;
-                y = (mousedownPosition[1] - rect.top) / this.gameElement.offsetHeight * 100;
+                x = (mousedownPosition[0] - rect.left) / rect.width * 100;
+                y = (mousedownPosition[1] - rect.top) / rect.height * 100;
             }
             const element = this.createElement(x, y, w, h);
 
@@ -303,8 +357,8 @@ class Editor extends Game {
                     textarea.style.top = c[1] + "%";
                     const x1 = x;
                     const y1 = y;
-                    const x2 = x + (element.offsetWidth / this.gameElement.offsetWidth * 100);
-                    const y2 = y + (element.offsetHeight / this.gameElement.offsetHeight * 100);
+                    const x2 = x + (element.clientWidth / this.cachedGameRect.width * 100);
+                    const y2 = y + (element.clientHeight / this.cachedGameRect.height * 100);
                     this.updateElementPoints(element, [
                         [x1, y1],
                         [x2, y1],
@@ -354,6 +408,9 @@ class Editor extends Game {
         for (let asset of this.gameElement.querySelectorAll("[data-filepath]")) {
             asset.removeAttribute("src");
         }
+        for (let asset of this.gameElement.querySelectorAll("[data-autoplay]")) {
+            asset.removeAttribute("autoplay");
+        }
         const createChildSlidePreviews = (parentSlide) => {
             for (let child of parentSlide.children) {
                 if (child.classList.contains("fh-slide")) {
@@ -366,6 +423,12 @@ class Editor extends Game {
     }
 
     async createGameFile() {
+        for (let asset of this.gameElement.querySelectorAll("[data-autoplay]")) {
+            if (asset.dataset.autoplay.toLowerCase() === "true") {
+                asset.setAttribute("autoplay", true);
+            }
+        }
+
         var game_css = await fetch("/css/game.css").then(res => res.text());
         var game_module = await fetch("/js/game.js").then(res => res.text());
         game_module = game_module.replace("export { Game };", "");
@@ -397,6 +460,9 @@ class Editor extends Game {
         var blob = await this.createGameFile();
         var url = URL.createObjectURL(blob);
         window.open(url, "_blank").focus();
+        for (let asset of this.gameElement.querySelectorAll("[data-autoplay]")) {
+            asset.removeAttribute("autoplay");
+        }
     }
 
     async saveGame() {
@@ -439,24 +505,23 @@ class Editor extends Game {
     }
 
     createEditorClickzone(element) {
-        const name = element.getAttribute("name");
         const clickzone = document.createElement("div");
         clickzone.className = "fh-editor-clickzone";
-        clickzone.setAttribute("name", name);
+        clickzone.setAttribute("name", element.getAttribute("name"));
         this.editorOverlay.appendChild(clickzone);
 
         var grabbedClickzones = [];
         var grabOffsets;
         var mousedownPosition;
-        var initialClick = true;
         var cancelClick = false;
+        var initialClick = false;
 
         clickzone.onwheel = (e) => {
-            var points = this.openElements[name].handle.points;
-            const rect = this.gameElement.getBoundingClientRect();
+            var points = this.openElements[element.getAttribute("name")].handle.points;
+            const rect = this.cachedGameRect;
             const anchor = [
-                (e.pageX - rect.left) / this.gameElement.offsetWidth * 100,
-                (e.pageY - rect.top) / this.gameElement.offsetHeight * 100
+                (e.pageX - rect.left) / rect.width * 100,
+                (e.pageY - rect.top) / rect.height * 100
             ]
             const scale = 1 + (e.deltaY / 1000);
             for (let point of points) {
@@ -470,9 +535,9 @@ class Editor extends Game {
             if (Math.abs(mousedownPosition[0] - e.pageX) + Math.abs(mousedownPosition[1] - e.pageY) > 3) {
                 cancelClick = true;
             }
-            const rect = this.gameElement.getBoundingClientRect();
-            const x = (e.pageX - rect.left) / this.gameElement.offsetWidth * 100;
-            const y = (e.pageY - rect.top) / this.gameElement.offsetHeight * 100;
+            const rect = this.cachedGameRect;
+            const x = (e.pageX - rect.left) / rect.width * 100;
+            const y = (e.pageY - rect.top) / rect.height * 100;
             for (let i=0; i<grabbedClickzones.length; i++) {
                 const clickzone = grabbedClickzones[i];
                 const element = this.openElements[clickzone.getAttribute("name")].element;
@@ -481,7 +546,7 @@ class Editor extends Game {
             }
         }
         const mouseupEvent = () => {
-            const points = this.openElements[name].handle.points;
+            const points = this.openElements[element.getAttribute("name")].handle.points;
             if (!(
                 points[0][0] < 100 &&
                 points[2][0] > 0 &&
@@ -497,8 +562,18 @@ class Editor extends Game {
             document.removeEventListener("mouseup", mouseupEvent);
         }
         clickzone.onmouseup = () => {
-            if (!cancelClick && !initialClick && clickzone.classList.contains("selected")) {
-                this.editElement(element);
+            if (!cancelClick) {
+                this.selectElement(element);
+            }
+            if (!initialClick && !cancelClick) {
+                this.openElementInspector(element);
+                setTimeout(() => {
+                    const textarea = this.editorInspector.querySelector("textarea");
+                    if (textarea) {
+                        textarea.focus();
+                        textarea.selectionStart = textarea.selectionEnd = textarea.value.length;
+                    }
+                }, 1);
             }
         }
         clickzone.onmousedown = (e) => {
@@ -507,11 +582,7 @@ class Editor extends Game {
 
             if (this.editMode === "select") {
                 if (e.button === 0) {
-                    if (!clickzone.classList.contains("selected")) {
-                        initialClick = true;
-                    } else {
-                        initialClick = false;
-                    }
+                    initialClick = !clickzone.classList.contains("selected");
 
                     if (!this.shiftKey && !clickzone.classList.contains("selected")) {
                         for (let name in this.openElements) {
@@ -520,11 +591,9 @@ class Editor extends Game {
                         }
                     }
 
-                    const rect = this.gameElement.getBoundingClientRect();
-                    const x = (e.pageX - rect.left) / this.gameElement.offsetWidth * 100;
-                    const y = (e.pageY - rect.top) / this.gameElement.offsetHeight * 100;
-
-                    this.selectElement(element);
+                    const rect = this.cachedGameRect;
+                    const x = (e.pageX - rect.left) / rect.width * 100;
+                    const y = (e.pageY - rect.top) / rect.height * 100;
 
                     const selected = this.editorOverlay.querySelectorAll(".fh-editor-clickzone.selected");
                     if (clickzone.classList.contains("selected")) {
@@ -601,8 +670,8 @@ class Editor extends Game {
             }
             iedge.onmousedown = (e) => {
                 const rect = svg.getBoundingClientRect();
-                const x = (e.pageX - rect.left) / this.gameElement.offsetWidth * 100;
-                const y = (e.pageY - rect.top) / this.gameElement.offsetHeight * 100;
+                const x = (e.pageX - rect.left) / this.cachedGameRect.width * 100;
+                const y = (e.pageY - rect.top) / this.cachedGameRect.height * 100;
                 edgeOffsets = [
                     [
                         handle.points[i][0] - x,
@@ -615,8 +684,8 @@ class Editor extends Game {
                 ];
                 const mousemoveEvent = (e) => {
                     const rect = svg.getBoundingClientRect();
-                    const x = (e.pageX - rect.left) / this.gameElement.offsetWidth * 100;
-                    const y = (e.pageY - rect.top) / this.gameElement.offsetHeight * 100;
+                    const x = (e.pageX - rect.left) / this.cachedGameRect.width * 100;
+                    const y = (e.pageY - rect.top) / this.cachedGameRect.height * 100;
                     const n = i >= 3 ? 0 : i + 1;
                     if (this.shiftKey) {
                         if (Math.abs(handle.points[i][0] - handle.points[n][0]) > Math.abs(handle.points[i][1] - handle.points[n][1])) {
@@ -667,8 +736,8 @@ class Editor extends Game {
             ivert.onmousedown = () => {
                 const mousemoveEvent = (e) => {
                     const parentRect = svg.getBoundingClientRect();
-                    const x = (e.pageX - parentRect.left) / this.gameElement.offsetWidth * 100;
-                    const y = (e.pageY - parentRect.top) / this.gameElement.offsetHeight * 100;
+                    const x = (e.pageX - parentRect.left) / this.cachedGameRect.width * 100;
+                    const y = (e.pageY - parentRect.top) / this.cachedGameRect.height * 100;
 
                     handle.points[i] = [x, y];
                     if (this.shiftKey) {
@@ -722,10 +791,10 @@ class Editor extends Game {
 
     createElementPointsArray(element) {
         if (!element.dataset.x1) {
-            const x1 = element.offsetLeft / this.gameElement.offsetWidth * 100;
-            const y1 = element.offsetTop / this.gameElement.offsetHeight * 100;
-            const x2 = (element.offsetLeft + element.offsetWidth) / this.gameElement.offsetWidth * 100;
-            const y2 = (element.offsetTop + element.offsetHeight) / this.gameElement.offsetHeight * 100;
+            const x1 = element.offsetLeft / this.cachedGameRect.width * 100;
+            const y1 = element.offsetTop / this.cachedGameRect.height * 100;
+            const x2 = (element.offsetLeft + element.clientWidth) / this.cachedGameRect.width * 100;
+            const y2 = (element.offsetTop + element.clientHeight) / this.cachedGameRect.height * 100;
             this.updateElementPoints(element, [
                 [x1, y1],
                 [x2, y1],
@@ -941,7 +1010,8 @@ class Editor extends Game {
 
         this.slidesContainer.appendChild(container);
         this.updateSlidePreview(slide);
-        this.updateSlidePreviewScale(preview);
+        if (this.cachedGameRect)
+            this.updateSlidePreviewScale(preview);
 
         return container;
     }
@@ -963,7 +1033,7 @@ class Editor extends Game {
         const width = parseFloat(style.getPropertyValue("--preview-width"));
         const padding = parseFloat(style.getPropertyValue("--preview-padding"));
         const insetMargin = parseFloat(style.getPropertyValue("--inset-margin"));
-        const scale = (width - insetMargin * inset) / this.gameElement.offsetWidth;
+        const scale = (width - insetMargin * inset) / this.cachedGameRect.width;
 
         preview.style.width = this.gameElement.style.width;
         preview.style.height = this.gameElement.style.height;
@@ -974,7 +1044,7 @@ class Editor extends Game {
         preview.style.left = left + "px";
         preview.nextElementSibling.style.left = left + "px";
         preview.style.top = padding + "px";
-        preview.parentElement.style.height = ((this.gameElement.offsetHeight * scale) + padding * 2) + "px";
+        preview.parentElement.style.height = ((this.cachedGameRect.height * scale) + padding * 2) + "px";
     }
 
     onresize() {
@@ -1081,6 +1151,15 @@ class Editor extends Game {
             if (document.body.querySelector(".fh-toolbar .selected[name=inspect]"))
                 this.openElementInspector();
         } else if (element.classList.contains("fh-element")) {
+            if (element.parentElement === this.currentSlide) {
+                const data = this.openElements[element.getAttribute("name")];
+                data.clickzone.setAttribute("name", name);
+                data.handle.svg.setAttribute("name", name);
+                delete this.openElements[element.getAttribute("name")];
+                this.openElements[name] = data;
+                console.log(this.openElements[name])
+            }
+
             element.setAttribute("name", name);
 
             if (element.parentElement === this.currentSlide) {
@@ -1111,8 +1190,8 @@ class Editor extends Game {
 
         x = x || 0;
         y = y || 0;
-        w = w || 0;
-        h = h || 0;
+        w = w || element.clientWidth;
+        h = h || element.clientHeight;
 
         element.dataset.x1 = x;
         element.dataset.y1 = y;
@@ -1246,15 +1325,6 @@ class Editor extends Game {
         }
     }
 
-    editElement(element) {
-        this.openElementInspector(element);
-        const textarea = this.editorInspector.querySelector("textarea");
-        if (textarea) {
-            textarea.focus();
-            textarea.selectionStart = textarea.selectionEnd = textarea.value.length;
-        }
-    }
-
     openElementInspector(element) {
         if (!element) {
             const selectedElement = this.editorOverlay.querySelector(".selected");
@@ -1360,6 +1430,7 @@ class Editor extends Game {
             exitScriptInput.oninput();
             enterScriptInput.oninput();
         }
+
         this.editorInspector.querySelector("[name=rename]").onchange = () => {
             var name = this.editorInspector.querySelector("[name=rename]").value.trim();
             var nameExists = true;
@@ -1376,6 +1447,7 @@ class Editor extends Game {
                 this.renameElement(element, name);
             }
         }
+
         const selectedInspector = document.body.querySelector(".fh-toolbar .inspector.selected");
         if (selectedInspector)
             selectedInspector.classList.remove("selected");
@@ -1421,20 +1493,27 @@ class Editor extends Game {
     }
 
     createMediaFolder(files) {
+        for (let asset of this.gameElement.querySelectorAll("[data-filepath]")) {
+            asset.removeAttribute("src");
+        }
+
         this.mediaFolder = document.createElement("ul");
         loadAssetFolder(files, this.mediaFolder);
 
         for (let file of this.mediaFolder.querySelectorAll(".file")) {
             file.onmousedown = async (e) => {
+                const type = file.dataset.type;
+                const format = file.dataset.format;
+                const filepath = file.dataset.filepath;
+
                 if (this.editMode !== "select")
                     this.switchMode();
 
-                const rect = this.gameElement.getBoundingClientRect();
-
-                var width;
-                var height;
-                var html;
-                if (file.dataset.type === "image") {
+                const rect = this.cachedGameRect;
+                var width = 0;
+                var height = 0;
+                var html = "";
+                if (type === "image") {
                     await new Promise(resolve => {
                         const image = new Image();
                         image.src = file.dataset.url;
@@ -1445,6 +1524,12 @@ class Editor extends Game {
                         }
                     })
                     html = `<img alt="" data-filepath="${file.dataset.filepath}" />`;
+                } else if (type === "video") {
+                    html = `<video data-autoplay="true"><source data-filepath="${filepath}" type="${format}"></video>`;
+                } else if (type === "audio") {
+                    html = `<audio data-autoplay="true" controls><source data-filepath="${filepath}" type="${format}"></audio>`;
+                } else if (type === "text") {
+                    html = file.querySelector("[name=text]").textContent;
                 }
 
                 const element = this.createElement(
@@ -1453,11 +1538,41 @@ class Editor extends Game {
                     width, height, html
                 );
 
-                if (file.dataset.type === "image") {
+                if (type === "image") {
                     element.querySelector("img").onload = () => {
                         this.updateElementTransform(element);
                     }
+                } else if (type === "video") {
+                    const video = element.querySelector("video");
+                    video.onloadedmetadata = () => {
+                        const width = video.videoWidth / rect.width * 100;
+                        const height = video.videoHeight / rect.height * 100;
+                        const x1 = (e.pageX - rect.left) / rect.width * 100 - width/2;
+                        const y1 = (e.pageY - rect.top) / rect.height * 100 - height/2;
+                        const x2 = x1 + width;
+                        const y2 = y1 + height;
+                        this.updateElementPoints(element, [
+                            [x1, y1],
+                            [x2, y1],
+                            [x2, y2],
+                            [x1, y2]
+                        ]);
+                    }
+                } else if (type === "audio" || type === "text") {
+                    const width = element.offsetWidth / rect.width * 100;
+                    const height = element.offsetHeight / rect.height * 100;
+                    const x1 = (e.pageX - rect.left) / rect.width * 100 - width/2;
+                    const y1 = (e.pageY - rect.top) / rect.height * 100 - height/2;
+                    const x2 = x1 + width;
+                    const y2 = y1 + height;
+                    this.updateElementPoints(element, [
+                        [x1, y1],
+                        [x2, y1],
+                        [x2, y2],
+                        [x1, y2]
+                    ]);
                 }
+
                 const clickzone = this.openElements[element.getAttribute("name")].clickzone;
                 clickzone.onmousedown(e);
             }
@@ -1474,6 +1589,7 @@ class Editor extends Game {
         reloadButton.type = "button";
         reloadButton.textContent = "(re)load folder";
         reloadButton.onclick = () => {
+            this.mediaFolder = null;
             document.querySelector(".inspector[name=media]").click();
         }
         this.editorInspector.appendChild(reloadButton);

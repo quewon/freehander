@@ -56,7 +56,7 @@ function general2DProjection(
 }
 
 function transform2d(element, x1, y1, x2, y2, x3, y3, x4, y4) {
-    var w = element.offsetWidth, h = element.offsetHeight;
+    var w = element.clientWidth, h = element.clientHeight;
     var t = general2DProjection(
         0, 0, x1, y1, w, 0, x2, y2, 0, h, x3, y3, w, h, x4, y4
     );
@@ -176,12 +176,10 @@ class Game {
         this.gameElement.style.width = w + "px";
         this.gameElement.style.height = h + "px";
         this.gameElement.style.fontSize = (16 * w / 600) + "px";
-        this.cachedClientRect = this.gameElement.getBoundingClientRect();
+        this.cachedGameRect = this.gameElement.getBoundingClientRect();
 
-        for (let element of this.currentSlide.children) {
-            if (element.classList.contains("fh-element")) {
-                this.updateElementTransform(element);
-            }
+        for (let element of document.querySelectorAll(".fh-slide.open > .fh-element")) {
+            this.updateElementTransform(element);
         }
     }
 
@@ -198,109 +196,15 @@ class Game {
         points = points || this.createElementPointsArray(element);
         transform2d(
             element,
-            points[0][0] * this.gameElement.offsetWidth / 100, 
-            points[0][1] * this.gameElement.offsetHeight / 100,
-            points[1][0] * this.gameElement.offsetWidth / 100, 
-            points[1][1] * this.gameElement.offsetHeight / 100,
-            points[3][0] * this.gameElement.offsetWidth / 100, 
-            points[3][1] * this.gameElement.offsetHeight / 100,
-            points[2][0] * this.gameElement.offsetWidth / 100, 
-            points[2][1] * this.gameElement.offsetHeight / 100,
+            points[0][0] * this.cachedGameRect.width / 100, 
+            points[0][1] * this.cachedGameRect.height / 100,
+            points[1][0] * this.cachedGameRect.width / 100, 
+            points[1][1] * this.cachedGameRect.height / 100,
+            points[3][0] * this.cachedGameRect.width / 100, 
+            points[3][1] * this.cachedGameRect.height / 100,
+            points[2][0] * this.cachedGameRect.width / 100, 
+            points[2][1] * this.cachedGameRect.height / 100,
         );
-    }
-
-    goto(path) {
-        for (let slide of this.gameElement.querySelectorAll(".fh-slide.open")) {
-            slide.classList.remove("open");
-        }
-
-        if (!this.currentSlide) {
-            this.currentSlide = this.gameElement;
-        }
-
-        const previousSlide = this.currentSlide;
-        this.currentSlide = this.getElementAtPath(path);
-
-        for (let open of document.querySelectorAll(".open"))
-            open.classList.remove("open");
-
-        var slide = this.currentSlide;
-        while (slide !== this.gameElement) {
-            slide.classList.add("open");
-            slide = slide.parentElement;
-        }
-
-        if (previousSlide !== this.currentSlide) {
-            var slidesExited = [];
-            var slidesEntered = [];
-
-            var s = previousSlide;
-            while (s !== this.gameElement) {
-                slidesExited.push(s);
-                s = s.parentElement;
-            }
-            s = this.currentSlide;
-            while (s !== this.gameElement) {
-                slidesEntered.unshift(s);
-                s = s.parentElement;
-            }
-            
-            while (slidesExited[slidesExited.length - 1] === slidesEntered[0]) {
-                slidesExited.pop();
-                slidesEntered.shift();
-            }
-            
-            for (let s of slidesExited) {
-                if (s.dataset.onexit)
-                    this.runScript(s.dataset.onexit);
-            }
-            for (let s of slidesEntered) {
-                if (s.dataset.onenter)
-                    this.runScript(s.dataset.onenter);
-            }
-        } else {
-            if (this.currentSlide.dataset.onenter)
-                this.runScript(this.currentSlide.dataset.onenter);
-        }
-        
-        for (let element of this.currentSlide.children) {
-            if (element.classList.contains("fh-element")) {
-                this.updateElementTransform(element);
-            }
-        }
-    }
-
-    show(path) {
-        const element = this.getElementAtPath(path);
-        element.classList.remove("hidden");
-        this.updateElementTransform(element);
-    }
-
-    hide(path) {
-        this.getElementAtPath(path).classList.add("hidden");
-    }
-
-    async seconds(seconds) {
-        return new Promise(resolve => {
-            setTimeout(() => {
-                resolve();
-            }, seconds * 1000);
-        })
-    }
-    
-    async s(seconds) {
-        await this.seconds(seconds);
-    }
-
-    async click() {
-        return new Promise(resolve => {
-            var clickListener = () => {
-                console.log("clicked");
-                resolve();
-                document.removeEventListener("click", clickListener);
-            }
-            document.addEventListener("click", clickListener);
-        })
     }
 
     getElementAtPath(path) {
@@ -356,6 +260,112 @@ class Game {
             path = path.substring(0, path.length - 1);
         }
         return "/" + path;
+    }
+
+    goto(path) {
+        if (path.length > 0 && path[path.length - 1] === "/") {
+            path = path.substring(0, path.length - 1);
+        }
+
+        for (let slide of this.gameElement.querySelectorAll(".fh-slide.open")) {
+            slide.classList.remove("open");
+        }
+
+        if (!this.currentSlide) {
+            this.currentSlide = this.gameElement;
+        }
+
+        const previousSlide = this.currentSlide;
+        this.currentSlide = this.getElementAtPath(path);
+
+        for (let open of document.querySelectorAll(".open"))
+            open.classList.remove("open");
+
+        var slide = this.currentSlide;
+        while (slide !== this.gameElement) {
+            slide.classList.add("open");
+            slide = slide.parentElement;
+        }
+
+        if (previousSlide !== this.currentSlide) {
+            var slidesExited = [];
+            var slidesEntered = [];
+
+            var s = previousSlide;
+            while (s !== this.gameElement) {
+                slidesExited.push(s);
+                s = s.parentElement;
+            }
+            s = this.currentSlide;
+            while (s !== this.gameElement) {
+                slidesEntered.unshift(s);
+                s = s.parentElement;
+            }
+            
+            while (slidesExited[slidesExited.length - 1] === slidesEntered[0]) {
+                slidesExited.pop();
+                slidesEntered.shift();
+            }
+            
+            for (let s of slidesExited) {
+                if (s.dataset.onexit)
+                    this.runScript(s.dataset.onexit);
+            }
+            for (let s of slidesEntered) {
+                if (s.dataset.onenter)
+                    this.runScript(s.dataset.onenter);
+            }
+        } else {
+            if (this.currentSlide.dataset.onenter)
+                this.runScript(this.currentSlide.dataset.onenter);
+        }
+
+        if (this.cachedGameRect) {
+            for (let element of document.querySelectorAll(".fh-slide.open > .fh-element")) {
+                this.updateElementTransform(element);
+            }
+        }
+    }
+
+    show(path) {
+        const element = this.getElementAtPath(path);
+        element.classList.remove("hidden");
+        this.updateElementTransform(element);
+    }
+
+    hide(path) {
+        this.getElementAtPath(path).classList.add("hidden");
+    }
+
+    async seconds(seconds) {
+        return new Promise(resolve => {
+            setTimeout(() => {
+                resolve();
+            }, seconds * 1000);
+        })
+    }
+    
+    async s(seconds) {
+        await this.seconds(seconds);
+    }
+
+    async click() {
+        return new Promise(resolve => {
+            var clickListener = () => {
+                console.log("clicked");
+                resolve();
+                document.removeEventListener("click", clickListener);
+            }
+            document.addEventListener("click", clickListener);
+        })
+    }
+
+    play(sound, loop) {
+        
+    }
+
+    stop(sound) {
+
     }
 }
 
