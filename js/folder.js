@@ -110,7 +110,6 @@ function createFileElement(parentElement, filename, parent, type, format) {
         }
     } else {
         url = URL.createObjectURL(file);
-        el.dataset.url = url;
     }
     const el = createElement({
         tagName: "li",
@@ -134,6 +133,8 @@ function createFileElement(parentElement, filename, parent, type, format) {
             }),
         ]
     });
+    if (url)
+        el.dataset.url = url;
     return el;
 }
 
