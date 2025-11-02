@@ -110,6 +110,7 @@ function createFileElement(parentElement, filename, parent, type, format) {
         }
     } else {
         url = URL.createObjectURL(file);
+        el.dataset.url = url;
     }
     const el = createElement({
         tagName: "li",
@@ -118,7 +119,6 @@ function createFileElement(parentElement, filename, parent, type, format) {
         title: type + " file",
         dataset: {
             filepath: parent[filename].path,
-            url: url,
             type: type,
             format: formatConverter[format] || format
         },
@@ -126,7 +126,7 @@ function createFileElement(parentElement, filename, parent, type, format) {
             createElement({
                 tagName: "span",
                 className: "icon",
-                style: `background-image: url(${url});`
+                style: url ? `background-image: url(${url});` : ""
             }),
             createElement({
                 tagName: "span",
