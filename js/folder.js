@@ -10,10 +10,9 @@ const supportedMediaFormats = [
     "audio/aiff",
     "video/mp4",
     "video/webm",
-    "video/quicktime",
 ]
 const formatConverter = {
-    "video/quicktime": "video/mp4",
+    // "video/quicktime": "video/mp4",
 }
 
 var assetFolderElement;
