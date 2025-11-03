@@ -162,10 +162,11 @@ body {
     z-index: 1;
     --handle-stroke-width: 2;
     --handle-color: gray;
-    --focused-handle-color: var(--accent);
+    --focused-handle-color: gray;
     --handle-hover-color: orange;
 }
 .focused .fh-editor-overlay {
+    --focused-handle-color: var(--accent);
     --handle-color: var(--focused-handle-color);
 }
 .fh-editor-clickzone {
@@ -176,6 +177,7 @@ body {
 .fh-editor-clickzone:hover,
 .fh-editor-clickzone.selected {
     border-color: gray;
+    background-color: var(--slightgray);
 }
 .fh-editor-clickzone:hover::after {
     content: attr(name);

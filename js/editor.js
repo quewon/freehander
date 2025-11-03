@@ -9,10 +9,10 @@ class Editor extends Game {
     mediaFolder;
 
     constructor(gameElement) {
-        const main = document.querySelector(".fh-editor-main");
+        const main = document.querySelector(".fh-game-container");
         main.onmousedown = (e) => {
-            if (document.querySelector(".fh-editor > .focused"))
-                document.querySelector(".fh-editor > .focused").classList.remove("focused");
+            if (document.querySelector(".fh-editor .focused"))
+                document.querySelector(".fh-editor .focused").classList.remove("focused");
             main.classList.add("focused");
             if (e.target.classList.contains("fh-game-container") || e.target === this.editorOverlay) {
                 for (let name in this.openElements) {
@@ -25,10 +25,16 @@ class Editor extends Game {
                 }
             }
         }
+        const inspector = document.querySelector(".fh-inspector");
+        inspector.onmousedown = (e) => {
+            if (document.querySelector(".fh-editor .focused"))
+                document.querySelector(".fh-editor .focused").classList.remove("focused");
+            inspector.classList.add("focused");
+        }
         const slidesContainer = document.querySelector(".fh-slides-container");
         slidesContainer.onmousedown = () => {
-            if (document.querySelector(".fh-editor > .focused"))
-                document.querySelector(".fh-editor > .focused").classList.remove("focused");
+            if (document.querySelector(".fh-editor .focused"))
+                document.querySelector(".fh-editor .focused").classList.remove("focused");
             slidesContainer.classList.add("focused");
         }
 
