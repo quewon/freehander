@@ -99,6 +99,8 @@ class Editor extends Game {
                 }
             }
 
+            var pastedElement;
+
             const selectedClickzone = this.editorOverlay.querySelector(".selected");
             if (selectedClickzone) {
                 const element = this.openElements[selectedClickzone.getAttribute("name")].element;
@@ -139,6 +141,8 @@ class Editor extends Game {
                 .then(text => {
                     const element = this.createElement(0, 0, 0, 0, text);
                     if (this.copiedElement) {
+                        var points = this.createElementPointsArray(this.copiedElement);
+                        this.updateElementPoints(element, points);
                         var name = this.copiedElement.getAttribute("name");
                         var nameExists = true;
                         while (nameExists) {
@@ -151,9 +155,6 @@ class Editor extends Game {
                             }
                         }
                         this.renameElement(element, name);
-                        var points = this.createElementPointsArray(this.copiedElement);
-                        this.updateElementPoints(element, points);
-                        this.setElementCenter(element, [50, 50]);
                     }
                 })
                 e.preventDefault();
@@ -1141,7 +1142,6 @@ class Editor extends Game {
                 data.handle.svg.setAttribute("name", name);
                 delete this.openElements[element.getAttribute("name")];
                 this.openElements[name] = data;
-                console.log(this.openElements[name])
             }
 
             element.setAttribute("name", name);
@@ -1187,6 +1187,25 @@ class Editor extends Game {
         element.dataset.y4 = y + h;
 
         this.openElement(element);
+
+        for (let asset of element.querySelectorAll("[data-filepath]")) {
+            const referenceElement = this.mediaFolder.querySelector(`[data-filepath="${asset.dataset.filepath}"]`);
+            if (!referenceElement) {
+                console.error(`media asset "${asset.dataset.filepath}" was not found.`);
+                break;
+            }
+            asset.setAttribute("src", referenceElement.dataset.url);
+            if (asset.tagName === "source") {
+                asset.parentElement.load();
+                asset.parentElement.onloadeddata = () => {
+                    this.updateElementTransform(element);
+                }
+            } else {
+                asset.onload = () => {
+                    this.updateElementTransform(element);
+                }
+            }
+        }
 
         return element;
     }
@@ -1507,11 +1526,11 @@ class Editor extends Game {
                             resolve();
                         }
                     })
-                    html = `<img alt="" src="${file.dataset.url}" data-filepath="${file.dataset.filepath}" />`;
+                    html = `<img alt="" data-filepath="${file.dataset.filepath}" />`;
                 } else if (type === "video") {
-                    html = `<video data-autoplay="true"><source src="${file.dataset.url}" data-filepath="${filepath}" type="${format}"></video>`;
+                    html = `<video data-autoplay="true"><source data-filepath="${filepath}" type="${format}"></video>`;
                 } else if (type === "audio") {
-                    html = `<audio data-autoplay="true" controls><source src="${file.dataset.url}" data-filepath="${filepath}" type="${format}"></audio>`;
+                    html = `<audio data-autoplay="true" controls><source data-filepath="${filepath}" type="${format}"></audio>`;
                 } else if (type === "text") {
                     html = file.querySelector("[name=text]").textContent;
                 }
