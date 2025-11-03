@@ -1507,11 +1507,11 @@ class Editor extends Game {
                             resolve();
                         }
                     })
-                    html = `<img alt="" data-filepath="${file.dataset.filepath}" />`;
+                    html = `<img alt="" src="${file.dataset.url}" data-filepath="${file.dataset.filepath}" />`;
                 } else if (type === "video") {
-                    html = `<video data-autoplay="true"><source data-filepath="${filepath}" type="${format}"></video>`;
+                    html = `<video data-autoplay="true"><source src="${file.dataset.url}" data-filepath="${filepath}" type="${format}"></video>`;
                 } else if (type === "audio") {
-                    html = `<audio data-autoplay="true" controls><source data-filepath="${filepath}" type="${format}"></audio>`;
+                    html = `<audio data-autoplay="true" controls><source src="${file.dataset.url}" data-filepath="${filepath}" type="${format}"></audio>`;
                 } else if (type === "text") {
                     html = file.querySelector("[name=text]").textContent;
                 }
@@ -1528,20 +1528,23 @@ class Editor extends Game {
                     }
                 } else if (type === "video") {
                     const video = element.querySelector("video");
-                    video.onloadedmetadata = () => {
-                        const width = video.videoWidth / rect.width * 100;
-                        const height = video.videoHeight / rect.height * 100;
-                        const x1 = (e.pageX - rect.left) / rect.width * 100 - width/2;
-                        const y1 = (e.pageY - rect.top) / rect.height * 100 - height/2;
-                        const x2 = x1 + width;
-                        const y2 = y1 + height;
-                        this.updateElementPoints(element, [
-                            [x1, y1],
-                            [x2, y1],
-                            [x2, y2],
-                            [x1, y2]
-                        ]);
-                    }
+                    await new Promise(resolve => {
+                        video.onloadedmetadata = () => {
+                            const width = video.videoWidth / rect.width * 100;
+                            const height = video.videoHeight / rect.height * 100;
+                            const x1 = (e.pageX - rect.left) / rect.width * 100 - width/2;
+                            const y1 = (e.pageY - rect.top) / rect.height * 100 - height/2;
+                            const x2 = x1 + width;
+                            const y2 = y1 + height;
+                            this.updateElementPoints(element, [
+                                [x1, y1],
+                                [x2, y1],
+                                [x2, y2],
+                                [x1, y2]
+                            ]);
+                            resolve();
+                        }
+                    })
                 } else if (type === "audio" || type === "text") {
                     const width = element.offsetWidth / rect.width * 100;
                     const height = element.offsetHeight / rect.height * 100;
@@ -1572,10 +1575,6 @@ class Editor extends Game {
 
         if (!this.mediaFolder) return;
         
-        for (let slide of this.gameElement.querySelectorAll(".fh-slide")) {
-            slide.classList.add("open");
-        }
-        var loadPromises = [];
         for (let asset of this.gameElement.querySelectorAll("[data-filepath]")) {
             const referenceElement = this.mediaFolder.querySelector(`[data-filepath="${asset.dataset.filepath}"]`);
             if (!referenceElement) {
@@ -1583,23 +1582,7 @@ class Editor extends Game {
                 break;
             }
             asset.setAttribute("src", referenceElement.dataset.url);
-            asset.parentElement.load();
-            loadPromises.push(new Promise(resolve => {
-                asset.parentElement.onloadeddata = () => {
-                    resolve();
-                }
-            }))
         }
-        for (let slide of this.gameElement.querySelectorAll(".fh-slide")) {
-            this.updateSlidePreview(slide);
-        }
-        await Promise.all(loadPromises);
-        for (let element of this.gameElement.querySelectorAll(".fh-element")) {
-            if (element.querySelector("video")) {
-                this.setElementCenter(element, this.getElementCenter(element));
-            }
-        }
-        this.goto(this.getPath(this.currentSlide));
     }
 
     openMediaInspector() {
