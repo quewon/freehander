@@ -405,12 +405,6 @@ class Editor extends Game {
     }
     
     initElements() {
-        for (let asset of this.gameElement.querySelectorAll("[data-filepath]")) {
-            asset.removeAttribute("src");
-        }
-        for (let asset of this.gameElement.querySelectorAll("[data-autoplay]")) {
-            asset.removeAttribute("autoplay");
-        }
         const createChildSlidePreviews = (parentSlide) => {
             for (let child of parentSlide.children) {
                 if (child.classList.contains("fh-slide")) {
@@ -420,15 +414,10 @@ class Editor extends Game {
             }
         }
         createChildSlidePreviews(this.gameElement);
+        this.refreshMedia();
     }
 
     async createGameFile() {
-        for (let asset of this.gameElement.querySelectorAll("[data-autoplay]")) {
-            if (asset.dataset.autoplay.toLowerCase() === "true") {
-                asset.setAttribute("autoplay", true);
-            }
-        }
-
         var game_css = await fetch("/css/game.css").then(res => res.text());
         var game_module = await fetch("/js/game.js").then(res => res.text());
         game_module = game_module.replace("export { Game };", "");
@@ -455,19 +444,16 @@ class Editor extends Game {
                 console.error(`media asset "${asset.dataset.filepath}" was not found.`);
                 break;
             }
-            asset.src = referenceElement.dataset.url;
+            asset.setAttribute("src", referenceElement.dataset.url);
         }
         var blob = await this.createGameFile();
         var url = URL.createObjectURL(blob);
         window.open(url, "_blank").focus();
-        for (let asset of this.gameElement.querySelectorAll("[data-autoplay]")) {
-            asset.removeAttribute("autoplay");
-        }
     }
 
     async saveGame() {
         for (let asset of this.gameElement.querySelectorAll("[data-filepath]")) {
-            asset.src = asset.dataset.filepath;
+            asset.setAttribute("src", asset.dataset.filepath);
         }
         var blob = await this.createGameFile();
         var url = URL.createObjectURL(blob);
@@ -555,8 +541,6 @@ class Editor extends Game {
             )) {
                 console.log("out of bounds element deleted.");
                 this.deleteElement(element);
-            } else {
-                this.openElementInspector();
             }
             document.removeEventListener("mousemove", mousemoveEvent);
             document.removeEventListener("mouseup", mouseupEvent);
@@ -1577,7 +1561,44 @@ class Editor extends Game {
                 clickzone.onmousedown(e);
             }
         }
+        
+        this.refreshMedia();
+    }
 
+    async refreshMedia() {
+        for (let asset of this.gameElement.querySelectorAll("[data-filepath]")) {
+            asset.removeAttribute("src");
+        }
+
+        if (!this.mediaFolder) return;
+        
+        for (let slide of this.gameElement.querySelectorAll(".fh-slide")) {
+            slide.classList.add("open");
+        }
+        var loadPromises = [];
+        for (let asset of this.gameElement.querySelectorAll("[data-filepath]")) {
+            const referenceElement = this.mediaFolder.querySelector(`[data-filepath="${asset.dataset.filepath}"]`);
+            if (!referenceElement) {
+                console.error(`media asset "${asset.dataset.filepath}" was not found.`);
+                break;
+            }
+            asset.setAttribute("src", referenceElement.dataset.url);
+            asset.parentElement.load();
+            loadPromises.push(new Promise(resolve => {
+                asset.parentElement.onloadeddata = () => {
+                    resolve();
+                }
+            }))
+        }
+        for (let slide of this.gameElement.querySelectorAll(".fh-slide")) {
+            this.updateSlidePreview(slide);
+        }
+        await Promise.all(loadPromises);
+        for (let element of this.gameElement.querySelectorAll(".fh-element")) {
+            if (element.querySelector("video")) {
+                this.setElementCenter(element, this.getElementCenter(element));
+            }
+        }
         this.goto(this.getPath(this.currentSlide));
     }
 
@@ -1628,18 +1649,6 @@ class Editor extends Game {
             element: element,
             clickzone: this.createEditorClickzone(element),
             handle: this.createElementHandle(element),
-        }
-        for (let asset of element.querySelectorAll("[data-filepath]")) {
-            if (!this.mediaFolder) {
-                console.error("media folder not initialized. media assets could not be loaded.");
-                break;
-            }
-            const referenceElement = this.mediaFolder.querySelector(`[data-filepath="${asset.dataset.filepath}"]`);
-            if (!referenceElement) {
-                console.error(`media asset "${asset.dataset.filepath}" was not found.`);
-                break;
-            }
-            asset.src = referenceElement.dataset.url;
         }
         this.updateElementPoints(element, this.createElementPointsArray(element));
     }

@@ -310,10 +310,30 @@ class Game {
             for (let s of slidesExited) {
                 if (s.dataset.onexit)
                     this.runScript(s.dataset.onexit);
+                if (!this.editorOverlay) {
+                    for (let element of s.children) {
+                        if (element.classList.contains("fh-element")) {
+                            const media = element.querySelector("[data-autoplay]");
+                            if (media) {
+                                media.pause();
+                            }
+                        }
+                    }
+                }
             }
             for (let s of slidesEntered) {
                 if (s.dataset.onenter)
                     this.runScript(s.dataset.onenter);
+                if (!this.editorOverlay) {
+                    for (let element of s.children) {
+                        if (element.classList.contains("fh-element")) {
+                            const media = element.querySelector("[data-autoplay]");
+                            if (media && media.dataset.autoplay.toLowerCase() === "true") {
+                                media.play();
+                            }
+                        }
+                    }
+                }
             }
         } else {
             if (this.currentSlide.dataset.onenter)
