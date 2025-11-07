@@ -243,7 +243,7 @@ class Editor extends Game {
             canvasRect[0] / gameRect.width * 100,
             canvasRect[1] / gameRect.height * 100,
             0, 0,
-            `<svg width="0" height="0" xmlns="http://www.w3.org/2000/svg"><path d="" fill="none" stroke="black" stroke-width="1"></path></svg>`
+            `<svg width="0" height="0"><path fill="none" stroke="black" stroke-width="1" d=""></path></svg>`
         )
         const svg = element.querySelector("svg");
         const path = svg.firstElementChild;
@@ -462,22 +462,56 @@ class Editor extends Game {
         for (let asset of this.gameElement.querySelectorAll("[data-filepath]")) {
             asset.setAttribute("src", asset.dataset.filepath);
         }
-        var blob = await this.createGameFile();
-        var url = URL.createObjectURL(blob);
+        var file = await this.createGameFile();
+        var url = URL.createObjectURL(file);
+
         var a = document.createElement("a");
         a.href = url;
         a.download = `${this.gameElement.dataset.title}.html`;
         a.click();
-        this.goto(this.getPath(this.currentSlide));
+        
+        this.refreshMedia();
+    }
+
+    async exportGame() {
+        var mediaContained = {};
+        for (let asset of this.gameElement.querySelectorAll("[data-filepath]")) {
+            asset.setAttribute("src", asset.dataset.filepath);
+            mediaContained[asset.dataset.filepath] = true;
+        }
+        
+        var zip = new JSZip();
+        zip.file("index.html", await this.createGameFile());
+        for (let key in mediaContained) {
+            var source = this.mediaFolder.querySelector(`[data-filepath="${key}"]`);
+            if (!source) {
+                console.error(`the file "${key}" needed for export was not found.`);
+                continue;
+            }
+            var blob = await fetch(source.dataset.url).then(res => res.blob());
+            zip.file(key, blob);
+        }
+        zip.generateAsync({ type: 'blob' }).then(content => {
+            saveAs(content, `${this.gameElement.dataset.title}.zip`)
+        })
+
+        this.refreshMedia();
     }
 
     loadGame() {
         const input = document.querySelector("input[name=html_input]");
         input.onchange = () => {
-            const file = input.files[0];
-            if (file) {
+            var htmlFile;
+            // var mediaDirectory;
+            // if (input.files.length > 1) {
+            //     for (let file of input.files) {
+            //         console.log(file);
+            //     }
+            // } else {
+                htmlFile = input.files[0];
+            // }
+            if (htmlFile) {
                 var reader = new FileReader();
-                reader.readAsText(file, "UTF-8");
                 reader.onload = (e) => {
                     const text = e.target.result;
                     const startString = "<!-- _FH_DATA_START -->";
@@ -491,6 +525,7 @@ class Editor extends Game {
                     gameElementContainer.firstElementChild;
                     this.init(gameElementContainer.firstElementChild);
                 }
+                reader.readAsText(htmlFile, "UTF-8");
             }
             input.value = "";
         }
@@ -1474,14 +1509,16 @@ class Editor extends Game {
             <input type="number" value="${this.gameElement.dataset.aspectratio}" step="0.1" name="aspectratio" /><br>
             <br>
             <div style="display: flex; gap: 1.5em;">
-                <button type="button" name="load"><b><<</b><br>load</button>
-                <button type="button" name="save"><b>vv</b><br>save</button>
+                <button type="button" name="load"><b><</b><br>load</button>
+                <button type="button" name="save"><b>v</b><br>save</button>
+                <button type="button" name="export"><b>[]</b><br>export</button>
             </div>
             <input style="display: none;" type="file" accept="text/html" name="html_input">
         `
 
         this.editorInspector.querySelector("[name=load]").onclick = () => this.loadGame();
         this.editorInspector.querySelector("[name=save]").onclick = () => this.saveGame();
+        this.editorInspector.querySelector("[name=export]").onclick = () => this.exportGame();
         
         const titleInput = this.editorInspector.querySelector("[name=title]");
         titleInput.onchange = () => {

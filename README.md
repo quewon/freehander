@@ -24,10 +24,10 @@ available script commands:
 - show(element_path);
 - hide(element_path);
 
-### building your game
+### play, load, save, export
 
 you can test the game in the browser by clicking "play".
 
-you can build your game by navigating to the "game" menu and clicking "save". if you are using media assets (i.e. image, video, audio assets), you should have the html file within a folder that contains the media folder.
+you can load and save your project using the respective "load", "save" buttons in the "game" menu.
 
-you can also load this html file to edit later.
+you can build your game by clicking "export". the resulting archive contains an index.html file that is identical to the file produced by the "save" function.

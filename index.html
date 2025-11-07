@@ -6,6 +6,8 @@
     <title>freehander</title>
     <link rel="stylesheet" href="css/game.css">
     <link rel="stylesheet" href="css/editor.css">
+    <script src="js/jszip.min.js" defer></script>
+    <script src="js/FileSaver.min.js" defer></script>
 </head>
 <body>
     <div class="fh-editor">
@@ -22,7 +24,7 @@
                 <button type="button" class="inspector" name="inspect">element</button>
                 <button type="button" class="inspector" name="document">game</button>
                 <button type="button" class="inspector" name="media">media</button>
-                <input style="display: none;" type="file" webkitdirectory multiple name="media_input">
+                <input style="display: none;" type="file" webkitdirectory directory multiple name="media_input">
             </div>
             <div style="display: flex; flex-grow: 1; overflow: hidden;">
                 <div class="fh-game-container">
