@@ -74,7 +74,7 @@ class Editor extends Game {
                     for (let preview of this.slidesContainer.querySelectorAll(".fh-slide-preview-container.selected")) {
                         this.deleteElement(this.getElementAtPath(preview.dataset.path));
                     }
-                } else {
+                } else if (!this.editorInspector.classList.contains("focused")) {
                     for (let clickzone of this.editorOverlay.querySelectorAll(".fh-editor-clickzone.selected")) {
                         this.deleteElement(this.openElements[clickzone.getAttribute("name")].element);
                     }
@@ -104,64 +104,52 @@ class Editor extends Game {
                         break;
                 }
             }
-
-            var pastedElement;
-
-            const selectedClickzone = this.editorOverlay.querySelector(".selected");
-            if (selectedClickzone) {
-                const element = this.openElements[selectedClickzone.getAttribute("name")].element;
+            var html = "";
+            var selectedClickzones;
+            if (this.slidesContainer.classList.contains("focused")) {
+                selectedClickzones = this.slidesContainer.querySelectorAll(".selected");
+            } else {
+                selectedClickzones = this.editorOverlay.querySelectorAll(".selected");
+            }
+            var selectedElements = [];
+            for (let selected of selectedClickzones) {
+                var element;
+                if (this.slidesContainer.classList.contains("focused")) {
+                    element = this.currentSlide.parentElement.querySelector(`[name="${selected.getAttribute("name")}"]`);
+                    var clone = element.cloneNode(true);
+                    for (let slide of clone.querySelectorAll(".fh-slide")) {
+                        slide.remove();
+                    }
+                    html += clone.outerHTML;
+                } else {
+                    element = this.currentSlide.querySelector(`[name="${selected.getAttribute("name")}"]`);
+                    html += element.outerHTML;
+                }
+                selectedElements.push(element);
+            }
+            if (html !== "") {
                 if (this.metaKey && e.code === "KeyC") {
                     //copy
-                    navigator.clipboard.writeText(element.innerHTML);
-                    this.copiedElement = element;
+                    navigator.clipboard.writeText(html);
                     e.preventDefault();
                 } else if (this.metaKey && e.code === "KeyX") {
                     //cut
-                    navigator.clipboard.writeText(element.innerHTML);
-                    this.copiedElement = element;
-                    this.deleteElement(element);
+                    navigator.clipboard.writeText(html);
+                    for (let element of selectedElements) {
+                        this.deleteElement(element);
+                    }
                     e.preventDefault();
                 } else if (this.metaKey && e.code === "KeyD") {
                     //duplicate
-                    const newElement = this.createElement(0, 0, 0, 0, element.innerHTML);
-                    this.updateElementPoints(newElement, this.openElements[selectedClickzone.getAttribute("name")].handle.points);
-                    var name = element.getAttribute("name") + "*";
-                    var nameExists = true;
-                    while (nameExists) {
-                        nameExists = false;
-                        for (let child of this.currentSlide.children) {
-                            if (child !== newElement && child.getAttribute("name") === name) {
-                                name = name + "*";
-                                nameExists = true;
-                            }
-                        }
-                    }
-                    this.renameElement(newElement, name);
+                    this.pasteHTML(html, this.currentSlide);
                     e.preventDefault();
                 }
             }
-
             if (this.metaKey && e.code === "KeyV") {
                 //paste
                 navigator.clipboard.readText()
                 .then(text => {
-                    const element = this.createElement(0, 0, 0, 0, text);
-                    if (this.copiedElement) {
-                        var points = this.createElementPointsArray(this.copiedElement);
-                        this.updateElementPoints(element, points);
-                        var name = this.copiedElement.getAttribute("name");
-                        var nameExists = true;
-                        while (nameExists) {
-                            nameExists = false;
-                            for (let child of this.currentSlide.children) {
-                                if (child !== element && child.getAttribute("name") === name) {
-                                    name = name + "*";
-                                    nameExists = true;
-                                }
-                            }
-                        }
-                        this.renameElement(element, name);
-                    }
+                    this.pasteHTML(text, this.currentSlide);
                 })
                 e.preventDefault();
             }
@@ -182,6 +170,52 @@ class Editor extends Game {
                 this.doodlemodeMousedown(e);
             }
         })
+    }
+
+    pasteHTML(html, parent) {
+        var beforeCount = parent.children.length;
+        parent.insertAdjacentHTML("beforeend", html);
+        var newElementCount = parent.children.length - beforeCount;
+
+        for (let i=newElementCount-1; i>=0; i--) {
+            var element = parent.children[beforeCount + i];
+            var actualParent = parent;
+            if (element.classList.contains("fh-slide"))
+                actualParent = parent.parentElement;
+
+            var duplicateName = () => {
+                const name = element.getAttribute("name");
+                for (let child of actualParent.children) {
+                    if (child !== element && child.getAttribute("name") === name) {
+                        return true;
+                    }
+                }
+                return false;
+            };
+            while (duplicateName()) {
+                element.setAttribute("name", element.getAttribute("name") + "*");
+            }
+
+            if (element.classList.contains("fh-slide")) {
+                actualParent.appendChild(element);
+                var preview = this.createSlidePreview(element);
+                if (parent.classList.contains("fh-slide")) {
+                    var previousPreview = this.findSlidePreview(parent);
+                    while (
+                        previousPreview.nextElementSibling &&
+                        parseInt(previousPreview.nextElementSibling.dataset.inset) > parseInt(preview.dataset.inset)
+                    ) {
+                        previousPreview = previousPreview.nextElementSibling;
+                    }
+                    previousPreview.after(preview);
+                }
+                preview.classList.remove("selected");
+            } else {
+                if (parent === this.currentSlide) {
+                    this.openElement(element);
+                }
+            }
+        }
     }
 
     selectionMousedown(e) {
@@ -346,6 +380,10 @@ class Editor extends Game {
             const element = this.createElement(x, y, w, h);
 
             const textarea = document.createElement("textarea");
+            textarea.setAttribute("autocomplete", "off");
+            textarea.setAttribute("autocorrect", "off");
+            textarea.setAttribute("autocapitalize", "off");
+            textarea.setAttribute("spellcheck", "off");
             textarea.style.fontFamily = "var(--editor-font)";
             textarea.style.backgroundColor = "white";
             textarea.style.position = "absolute";
@@ -543,6 +581,8 @@ class Editor extends Game {
         var mousedownPosition;
         var cancelClick = false;
         var initialClick = false;
+        var doubleClick = false;
+        var doubleClickTimeout;
 
         clickzone.onwheel = (e) => {
             var points = this.openElements[element.getAttribute("name")].handle.points;
@@ -562,6 +602,7 @@ class Editor extends Game {
         const mousemoveEvent = (e) => {
             if (Math.abs(mousedownPosition[0] - e.pageX) + Math.abs(mousedownPosition[1] - e.pageY) > 3) {
                 cancelClick = true;
+                doubleClick = false;
             }
             const rect = this.cachedGameRect;
             const x = (e.pageX - rect.left) / rect.width * 100;
@@ -591,7 +632,7 @@ class Editor extends Game {
             if (!cancelClick) {
                 this.selectElement(element);
             }
-            if (!initialClick && !cancelClick) {
+            if (doubleClick) {
                 this.openElementInspector(element);
                 setTimeout(() => {
                     const textarea = this.editorInspector.querySelector("textarea");
@@ -600,6 +641,7 @@ class Editor extends Game {
                         textarea.selectionStart = textarea.selectionEnd = textarea.value.length;
                     }
                 }, 1);
+                doubleClick = false;
             }
         }
         clickzone.onmousedown = (e) => {
@@ -608,7 +650,17 @@ class Editor extends Game {
 
             if (this.editMode === "select") {
                 if (e.button === 0) {
-                    initialClick = !clickzone.classList.contains("selected");
+                    if (!initialClick) {
+                        initialClick = true;
+                        doubleClick = false;
+                        doubleClickTimeout = setTimeout(() => {
+                            initialClick = false;
+                        }, 500);
+                    } else {
+                        clearTimeout(doubleClickTimeout);
+                        initialClick = false;
+                        doubleClick = true;
+                    }
 
                     if (!this.shiftKey && !clickzone.classList.contains("selected")) {
                         for (let name in this.openElements) {
@@ -1154,6 +1206,7 @@ class Editor extends Game {
         if (element.classList.contains("fh-slide")) {
             const preview = this.findSlidePreview(element);
             preview.querySelector("label").textContent = name;
+            preview.setAttribute("name", name);
             
             var repath = [];
             repath.push({
@@ -1161,7 +1214,7 @@ class Editor extends Game {
                 element: element
             })
             for (let childSlide of element.querySelectorAll(".fh-slide")) {
-                const preview = childSlide.findSlidePreview();
+                const preview = this.findSlidePreview(childSlide);
                 repath.push({
                     preview: preview,
                     element: childSlide
@@ -1379,6 +1432,12 @@ class Editor extends Game {
             }
         }
         const name = element.getAttribute("name");
+
+        for (let input of this.editorInspector.querySelectorAll("input, textarea")) {
+            if (input.onblur)
+                input.onblur();
+        }
+
         if (element.classList.contains("fh-element")) {
             this.editorInspector.innerHTML = `
                 <b>ELEMENT</b><br>
@@ -1387,10 +1446,10 @@ class Editor extends Game {
                 <input type="text" value="${name}" name="rename" /><br>
                 <br>
                 <label>HTML</label><br>
-                <textarea style="width: 100%;" name="html">${element.innerHTML}</textarea><br>
+                <textarea autocomplete="off" autocorrect="off" autocapitalize="off" spellcheck="false" style="width: 100%;" name="html">${element.innerHTML}</textarea><br>
                 <br>
                 <label>click script</label><br>
-                <textarea style="width: 100%;" name="onclick">${element.dataset.onclick ? element.dataset.onclick : ""}</textarea><br>
+                <textarea autocomplete="off" autocorrect="off" autocapitalize="off" spellcheck="false" style="width: 100%;" name="onclick">${element.dataset.onclick ? element.dataset.onclick : ""}</textarea><br>
                 <br>
                 <label>x&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;</label> <input type="number" value="${element.dataset.x1}" name="x"></input><br>
                 <label>y&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;</label> <input type="number" value="${element.dataset.y1}" name="y"></input><br>
@@ -1399,7 +1458,7 @@ class Editor extends Game {
 
             const xInput = this.editorInspector.querySelector("[name=x]");
             const yInput = this.editorInspector.querySelector("[name=y]");
-            xInput.onchange = () => {
+            xInput.oninput = () => {
                 var points = element.parentElement === this.currentSlide ? this.openElements[name].handle.points : this.createElementPointsArray(element);
                 const x = parseInt(xInput.value);
                 points[1][0] = (points[1][0] - points[0][0]) + x;
@@ -1408,7 +1467,7 @@ class Editor extends Game {
                 points[3][0] = x;
                 this.updateElementPoints(element, points);
             }
-            yInput.onchange = () => {
+            yInput.oninput = () => {
                 var points = element.parentElement === this.currentSlide ? this.openElements[name].handle.points : this.createElementPointsArray(element);
                 const y = parseInt(yInput.value);
                 points[2][1] = (points[2][1] - points[0][1]) + y;
@@ -1420,14 +1479,14 @@ class Editor extends Game {
 
             const htmlInput = this.editorInspector.querySelector("[name=html]");
             const clickScriptInput = this.editorInspector.querySelector("[name=onclick]");
-            clickScriptInput.onchange = () => {
-                element.dataset.onclick = clickScriptInput.value;
-            }
-
             htmlInput.oninput = clickScriptInput.oninput = function() {
                 this.style.height = "";
                 this.style.height = this.scrollHeight + "px";
             }
+            
+            clickScriptInput.addEventListener("input", () => {
+                element.dataset.onclick = clickScriptInput.value;
+            })
 
             htmlInput.addEventListener("input", () => {
                 this.setElementHTML(element, htmlInput.value);
@@ -1449,33 +1508,36 @@ class Editor extends Game {
                 <input type="text" value="${name}" name="rename" /><br>
                 <br>
                 <label>enter script</label><br>
-                <textarea style="width: 100%" name="onenter">${element.dataset.onenter ? element.dataset.onenter : ""}</textarea><br>
+                <textarea autocomplete="off" autocorrect="off" autocapitalize="off" spellcheck="false" style="width: 100%" name="onenter">${element.dataset.onenter ? element.dataset.onenter : ""}</textarea><br>
                 <br>
                 <label>exit script</label><br>
-                <textarea style="width: 100%" name="onexit">${element.dataset.onexit ? element.dataset.onexit : ""}</textarea><br>
+                <textarea autocomplete="off" autocorrect="off" autocapitalize="off" spellcheck="false" style="width: 100%" name="onexit">${element.dataset.onexit ? element.dataset.onexit : ""}</textarea><br>
                 <br>
             `
 
             const enterScriptInput = this.editorInspector.querySelector("[name=onenter]");
-            enterScriptInput.onchange = () => {
-                element.dataset.onenter = enterScriptInput.value;
-            }
-
             const exitScriptInput = this.editorInspector.querySelector("[name=onexit]");
-            exitScriptInput.onchange = () => {
-                element.dataset.onexit = exitScriptInput.value;
-            }
-
+            
             exitScriptInput.oninput = enterScriptInput.oninput = function() {
                 this.style.height = "";
                 this.style.height = this.scrollHeight + "px";
             }
+            
+            enterScriptInput.addEventListener("input", () => {
+                element.dataset.onenter = enterScriptInput.value;
+            })
+
+            exitScriptInput.addEventListener("input", () => {
+                element.dataset.onexit = exitScriptInput.value;
+            })
 
             exitScriptInput.oninput();
             enterScriptInput.oninput();
         }
 
-        this.editorInspector.querySelector("[name=rename]").onchange = () => {
+        const nameInput = this.editorInspector.querySelector("[name=rename]");
+        nameInput.onchange = nameInput.onblur = () => {
+            if (!element.parentElement) return;
             var name = this.editorInspector.querySelector("[name=rename]").value.trim();
             var nameExists = true;
             while (nameExists) {
@@ -1521,13 +1583,13 @@ class Editor extends Game {
         this.editorInspector.querySelector("[name=export]").onclick = () => this.exportGame();
         
         const titleInput = this.editorInspector.querySelector("[name=title]");
-        titleInput.onchange = () => {
+        titleInput.oninput = () => {
             this.gameElement.dataset.title = titleInput.value;
             document.title = titleInput.value;
         }
 
         const aspectRatioInput = this.editorInspector.querySelector("[name=aspectratio]");
-        aspectRatioInput.onchange = () => {
+        aspectRatioInput.oninput = () => {
             this.gameElement.dataset.aspectratio = aspectRatioInput.value;
             this.onresize();
         }
