@@ -1547,7 +1547,7 @@ class Editor extends Game {
         var styleElement = element.querySelector(":scope > style");
         if (!styleElement) {
             styleElement = document.createElement("style");
-            styleElement.textContent = "@scope {\n  :scope {\n    color: black;\n  }\n}";
+            styleElement.textContent = "@scope {\n  :scope {\n    color: inherit;\n  }\n}";
             element.appendChild(styleElement);
         }
         cssInput.value = styleElement.textContent;
