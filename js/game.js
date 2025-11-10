@@ -153,16 +153,17 @@ class Game {
                 clickzone.style.height = (max[1] - min[1]) + "%";
 
                 clickzone.onclick = () => {
-                    this.runScript(element.dataset.onclick);
+                    this.runScript(element.dataset.onclick, element);
                 };
                 element.parentElement.appendChild(clickzone);
             }
         }
     }
 
-    async runScript(script) {
+    async runScript(script, element) {
         const keys = Object.getOwnPropertyNames(Game.prototype);
-        Function(keys, `(async () => { ${script} })()`)(...(keys.map(key => this[key].bind(this))));
+        const values = keys.map(key => this[key].bind(this));
+        Function(...keys, `(async () => { ${script} })()`).apply(element || window, values);
     }
 
     onresize() {
@@ -329,7 +330,7 @@ class Game {
             
             for (let s of slidesExited) {
                 if (s.dataset.onexit)
-                    this.runScript(s.dataset.onexit);
+                    this.runScript(s.dataset.onexit, s);
                 if (!this.editorOverlay) {
                     for (let element of s.children) {
                         if (element.classList.contains("fh-element")) {
@@ -343,7 +344,7 @@ class Game {
             }
             for (let s of slidesEntered) {
                 if (s.dataset.onenter)
-                    this.runScript(s.dataset.onenter);
+                    this.runScript(s.dataset.onenter, s);
                 if (!this.editorOverlay) {
                     for (let element of s.children) {
                         if (element.classList.contains("fh-element")) {
@@ -357,12 +358,12 @@ class Game {
             }
         } else {
             if (this.currentSlide.dataset.onenter)
-                this.runScript(this.currentSlide.dataset.onenter);
+                this.runScript(this.currentSlide.dataset.onenter, this.currentSlide);
         }
 
         for (let element of this.currentSlide.children) {
             if (!element.classList.contains("hidden") && element.classList.contains("fh-element") && element.dataset.onshow) {
-                Function(element.dataset.onshow).call(element);
+                this.runScript(element.dataset.onshow, element);
             }
         }
 
@@ -380,7 +381,7 @@ class Game {
         if (clickzone) clickzone.classList.remove("hidden");
         this.updateElementTransform(element);
         if (element.dataset.onshow) {
-            Function(element.dataset.onshow).call(element);
+            this.runScript(element.dataset.onshow, element);
         }
     }
 
