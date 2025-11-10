@@ -1479,10 +1479,6 @@ class Editor extends Game {
                 input.onblur();
         }
 
-        var elementWithoutStyle = element.cloneNode(true);
-        if (elementWithoutStyle.querySelector(":scope > style"))
-            elementWithoutStyle.querySelector(":scope > style").remove();
-
         if (element.classList.contains("fh-element")) {
             this.editorInspector.innerHTML = `
                 <b>ELEMENT</b><br>
@@ -1491,18 +1487,23 @@ class Editor extends Game {
                 <input type="text" value="${name}" name="rename" /><br>
                 <br>
                 <label>HTML</label><br>
-                <textarea name="html">${elementWithoutStyle.innerHTML}</textarea><br>
+                <textarea name="html">${element.innerHTML}</textarea><br>
+                <br>
+                <label>show script</label><br>
+                <textarea name="onshow">${element.dataset.onshow ? element.dataset.onshow : ""}</textarea><br>
                 <br>
                 <label>click script</label><br>
                 <textarea name="onclick">${element.dataset.onclick ? element.dataset.onclick : ""}</textarea><br>
                 <br>
-                <label>CSS</label><br>
-                <textarea name="css"></textarea><br>
-                <br>
             `;
 
             const htmlInput = this.editorInspector.querySelector("[name=html]");
+            const showScriptInput = this.editorInspector.querySelector("[name=onshow]");
             const clickScriptInput = this.editorInspector.querySelector("[name=onclick]");
+
+            showScriptInput.addEventListener("input", () => {
+                element.dataset.onshow = showScriptInput.value;
+            })
 
             clickScriptInput.addEventListener("input", () => {
                 element.dataset.onclick = clickScriptInput.value;
@@ -1545,19 +1546,19 @@ class Editor extends Game {
             exitScriptInput.addEventListener("input", () => {
                 element.dataset.onexit = exitScriptInput.value;
             })
-        }
 
-        const cssInput = this.editorInspector.querySelector("[name=css]");
-        var styleElement = element.querySelector(":scope > style");
-        if (!styleElement) {
-            styleElement = document.createElement("style");
-            styleElement.textContent = "@scope {\n  :scope {\n    color: inherit;\n  }\n}";
-            element.prepend(styleElement);
+            const cssInput = this.editorInspector.querySelector("[name=css]");
+            var styleElement = element.querySelector(":scope > style");
+            if (!styleElement) {
+                styleElement = document.createElement("style");
+                styleElement.textContent = "@scope {\n  :scope {\n    color: inherit;\n  }\n}";
+                element.prepend(styleElement);
+            }
+            cssInput.value = styleElement.textContent;
+            cssInput.addEventListener("input", () => {
+                styleElement.textContent = cssInput.value;
+            })
         }
-        cssInput.value = styleElement.textContent;
-        cssInput.addEventListener("input", () => {
-            styleElement.textContent = cssInput.value;
-        })
 
         const nameInput = this.editorInspector.querySelector("[name=rename]");
         nameInput.onchange = nameInput.onblur = () => {

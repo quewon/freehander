@@ -360,6 +360,12 @@ class Game {
                 this.runScript(this.currentSlide.dataset.onenter);
         }
 
+        for (let element of this.currentSlide.children) {
+            if (!element.classList.contains("hidden") && element.classList.contains("fh-element") && element.dataset.onshow) {
+                Function(element.dataset.onshow).call(element);
+            }
+        }
+
         if (this.cachedGameRect) {
             for (let element of document.querySelectorAll(".fh-slide.open > .fh-element")) {
                 this.updateElementTransform(element);
@@ -373,6 +379,9 @@ class Game {
         element.classList.remove("hidden");
         if (clickzone) clickzone.classList.remove("hidden");
         this.updateElementTransform(element);
+        if (element.dataset.onshow) {
+            Function(element.dataset.onshow).call(element);
+        }
     }
 
     hide(path) {
