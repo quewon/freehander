@@ -1,6 +1,12 @@
 import { Game } from "./game.js";
 import { loadAssetFolder } from "./folder.js";
 
+function isHTML(string) {
+    const fragment = document.createRange().createContextualFragment(string);
+    fragment.querySelectorAll('*').forEach(el => el.parentNode.removeChild(el));
+    return !(fragment.textContent || '').trim();
+}
+
 class Editor extends Game {
     editMode = "select";
     shiftKey = false;
@@ -173,6 +179,10 @@ class Editor extends Game {
     }
 
     pasteHTML(html, parent) {
+        if (!isHTML(html)) {
+            html = `<div class="fh-element" name="element1">${html}</div>`;
+        }
+
         var beforeCount = parent.children.length;
         parent.insertAdjacentHTML("beforeend", html);
         var newElementCount = parent.children.length - beforeCount;
@@ -182,6 +192,14 @@ class Editor extends Game {
             var actualParent = parent;
             if (element.classList.contains("fh-slide"))
                 actualParent = parent.parentElement;
+            if (!element.classList.contains("fh-slide") && !element.classList.contains("fh-element")) {
+                var newEl = document.createElement("div");
+                newEl.className = "fh-element";
+                newEl.setAttribute("name", "element1");
+                newEl.innerHTML = element.outerHTML;
+                element.replaceWith(newEl);
+                element = newEl;
+            }
 
             var duplicateName = () => {
                 const name = element.getAttribute("name");
@@ -939,7 +957,7 @@ class Editor extends Game {
             ]
         }
 
-        if (element.parentElement === this.currentSlide) {
+        if (this.openElements[element.getAttribute("name")]) {
             const data = this.openElements[element.getAttribute("name")];
 
             data.handle.points = points;
