@@ -295,11 +295,15 @@ class Editor extends Game {
             canvasRect[0] / gameRect.width * 100,
             canvasRect[1] / gameRect.height * 100,
             1, 1,
-            `<svg width="0" height="0" viewBox="0 0 0 0"><path fill="none" stroke="black" stroke-width="1" d="" /></svg>`
+            `<svg width="0" height="0" viewBox="0 0 0 0"><path d="" /></svg>`
         )
         const svg = element.querySelector("svg");
         const path = svg.firstElementChild;
         var pathPoints = [[0, 0]];
+
+        var styleElement = document.createElement("style");
+        styleElement.textContent = "@scope {\n  :scope {\n    fill: none;\n    stroke: black;\n    stroke-width: 1;\n  }\n}";
+        element.prepend(styleElement);
 
         const mousemoveEvent = (e) => {
             const min = [
@@ -1548,7 +1552,7 @@ class Editor extends Game {
         if (!styleElement) {
             styleElement = document.createElement("style");
             styleElement.textContent = "@scope {\n  :scope {\n    color: inherit;\n  }\n}";
-            element.appendChild(styleElement);
+            element.prepend(styleElement);
         }
         cssInput.value = styleElement.textContent;
         cssInput.addEventListener("input", () => {
