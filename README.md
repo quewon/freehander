@@ -24,6 +24,14 @@ available script commands:
 - show(element_path);
 - hide(element_path);
 
+### style
+
+styling is done with css.
+
+everything inside the `@scope { }` block contains the styles within the given element or slide (and its subslides).
+
+within a `@scope { }` block, `:scope` is a selector for the given element or slide.
+
 ### play, load, save, export
 
 you can test the game in the browser by clicking "play".
