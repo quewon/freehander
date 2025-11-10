@@ -290,11 +290,11 @@ class Editor extends Game {
     doodlemodeMousedown(e) {
         const padding = 5;
         const gameRect = this.cachedGameRect;
-        var canvasRect = [e.pageX - gameRect.left, e.pageY - gameRect.top, 0, 0];
+        var canvasRect = [e.pageX - gameRect.left, e.pageY - gameRect.top, 1, 1];
         const element = this.createElement(
             canvasRect[0] / gameRect.width * 100,
             canvasRect[1] / gameRect.height * 100,
-            0, 0,
+            1, 1,
             `<svg width="0" height="0"><path fill="none" stroke="black" stroke-width="1" d=""></path></svg>`
         )
         const svg = element.querySelector("svg");
@@ -647,19 +647,21 @@ class Editor extends Game {
             document.removeEventListener("mouseup", mouseupEvent);
         }
         clickzone.onmouseup = () => {
-            if (!cancelClick) {
-                this.selectElement(element);
-            }
-            if (doubleClick) {
-                this.openElementInspector(element);
-                setTimeout(() => {
-                    const textarea = this.editorInspector.querySelector("textarea");
-                    if (textarea) {
-                        textarea.focus();
-                        textarea.selectionStart = textarea.selectionEnd = textarea.value.length;
-                    }
-                }, 1);
-                doubleClick = false;
+            if (this.editMode === "select") {
+                if (!cancelClick) {
+                    this.selectElement(element);
+                }
+                if (doubleClick) {
+                    this.openElementInspector(element);
+                    setTimeout(() => {
+                        const textarea = this.editorInspector.querySelector("textarea");
+                        if (textarea) {
+                            textarea.focus();
+                            textarea.selectionStart = textarea.selectionEnd = textarea.value.length;
+                        }
+                    }, 1);
+                    doubleClick = false;
+                }
             }
         }
         clickzone.onmousedown = (e) => {
@@ -1171,6 +1173,9 @@ class Editor extends Game {
             this.editorOverlay.style.cursor = "crosshair";
         } else if (this.editMode === "doodle") {
             this.editorOverlay.style.cursor = "crosshair";
+            for (let name in this.openElements) {
+                this.deselectElement(this.openElements[name].element);
+            }
         }
         const toolbar = document.querySelector(".fh-toolbar");
         if (toolbar.querySelector(".selected"))
