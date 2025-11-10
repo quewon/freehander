@@ -354,7 +354,8 @@ class Editor extends Game {
             svg.style.display = 'none';
             svg.offsetHeight;
             requestAnimationFrame(() => {
-                svg.style.display = '';
+                svg.getAttribute("style");
+                svg.removeAttribute("style");
                 requestAnimationFrame(() => {
                     element.style.transform = transform;
                 })
@@ -464,7 +465,9 @@ class Editor extends Game {
 
     init(gameElement) {
         super.init(gameElement);
-        this.openElementInspector();
+        setTimeout(() => {
+            this.openElementInspector();
+        }, 100);
     }
 
     initGameElement(gameElement) {
@@ -1472,6 +1475,10 @@ class Editor extends Game {
                 input.onblur();
         }
 
+        var elementWithoutStyle = element.cloneNode(true);
+        if (elementWithoutStyle.querySelector(":scope > style"))
+            elementWithoutStyle.querySelector(":scope > style").remove();
+
         if (element.classList.contains("fh-element")) {
             this.editorInspector.innerHTML = `
                 <b>ELEMENT</b><br>
@@ -1480,44 +1487,19 @@ class Editor extends Game {
                 <input type="text" value="${name}" name="rename" /><br>
                 <br>
                 <label>HTML</label><br>
-                <textarea autocomplete="off" autocorrect="off" autocapitalize="off" spellcheck="false" style="width: 100%;" name="html">${element.innerHTML}</textarea><br>
+                <textarea name="html">${elementWithoutStyle.innerHTML}</textarea><br>
                 <br>
                 <label>click script</label><br>
-                <textarea autocomplete="off" autocorrect="off" autocapitalize="off" spellcheck="false" style="width: 100%;" name="onclick">${element.dataset.onclick ? element.dataset.onclick : ""}</textarea><br>
+                <textarea name="onclick">${element.dataset.onclick ? element.dataset.onclick : ""}</textarea><br>
                 <br>
-                <label>x&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;</label> <input type="number" value="${element.dataset.x1}" name="x"></input><br>
-                <label>y&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;</label> <input type="number" value="${element.dataset.y1}" name="y"></input><br>
+                <label>CSS</label><br>
+                <textarea name="css"></textarea><br>
                 <br>
             `;
 
-            const xInput = this.editorInspector.querySelector("[name=x]");
-            const yInput = this.editorInspector.querySelector("[name=y]");
-            xInput.oninput = () => {
-                var points = element.parentElement === this.currentSlide ? this.openElements[name].handle.points : this.createElementPointsArray(element);
-                const x = parseInt(xInput.value);
-                points[1][0] = (points[1][0] - points[0][0]) + x;
-                points[2][0] = (points[2][0] - points[0][0]) + x;
-                points[0][0] = x;
-                points[3][0] = x;
-                this.updateElementPoints(element, points);
-            }
-            yInput.oninput = () => {
-                var points = element.parentElement === this.currentSlide ? this.openElements[name].handle.points : this.createElementPointsArray(element);
-                const y = parseInt(yInput.value);
-                points[2][1] = (points[2][1] - points[0][1]) + y;
-                points[3][1] = (points[3][1] - points[0][1]) + y;
-                points[0][1] = y;
-                points[1][1] = y;
-                this.updateElementPoints(element, points);
-            }
-
             const htmlInput = this.editorInspector.querySelector("[name=html]");
             const clickScriptInput = this.editorInspector.querySelector("[name=onclick]");
-            htmlInput.oninput = clickScriptInput.oninput = function() {
-                this.style.height = "";
-                this.style.height = this.scrollHeight + "px";
-            }
-            
+
             clickScriptInput.addEventListener("input", () => {
                 element.dataset.onclick = clickScriptInput.value;
             })
@@ -1530,9 +1512,6 @@ class Editor extends Game {
                     this.deleteElement(element);
                 }
             }
-
-            htmlInput.oninput();
-            clickScriptInput.oninput();
         } else {
             // inspecting slide
             this.editorInspector.innerHTML = `
@@ -1542,20 +1521,18 @@ class Editor extends Game {
                 <input type="text" value="${name}" name="rename" /><br>
                 <br>
                 <label>enter script</label><br>
-                <textarea autocomplete="off" autocorrect="off" autocapitalize="off" spellcheck="false" style="width: 100%" name="onenter">${element.dataset.onenter ? element.dataset.onenter : ""}</textarea><br>
+                <textarea name="onenter">${element.dataset.onenter ? element.dataset.onenter : ""}</textarea><br>
                 <br>
                 <label>exit script</label><br>
-                <textarea autocomplete="off" autocorrect="off" autocapitalize="off" spellcheck="false" style="width: 100%" name="onexit">${element.dataset.onexit ? element.dataset.onexit : ""}</textarea><br>
+                <textarea name="onexit">${element.dataset.onexit ? element.dataset.onexit : ""}</textarea><br>
+                <br>
+                <label>CSS</label><br>
+                <textarea name="css"></textarea><br>
                 <br>
             `
 
             const enterScriptInput = this.editorInspector.querySelector("[name=onenter]");
             const exitScriptInput = this.editorInspector.querySelector("[name=onexit]");
-            
-            exitScriptInput.oninput = enterScriptInput.oninput = function() {
-                this.style.height = "";
-                this.style.height = this.scrollHeight + "px";
-            }
             
             enterScriptInput.addEventListener("input", () => {
                 element.dataset.onenter = enterScriptInput.value;
@@ -1564,10 +1541,19 @@ class Editor extends Game {
             exitScriptInput.addEventListener("input", () => {
                 element.dataset.onexit = exitScriptInput.value;
             })
-
-            exitScriptInput.oninput();
-            enterScriptInput.oninput();
         }
+
+        const cssInput = this.editorInspector.querySelector("[name=css]");
+        var styleElement = element.querySelector(":scope > style");
+        if (!styleElement) {
+            styleElement = document.createElement("style");
+            styleElement.textContent = "@scope {\n  :scope {\n    color: black;\n  }\n}";
+            element.appendChild(styleElement);
+        }
+        cssInput.value = styleElement.textContent;
+        cssInput.addEventListener("input", () => {
+            styleElement.textContent = cssInput.value;
+        })
 
         const nameInput = this.editorInspector.querySelector("[name=rename]");
         nameInput.onchange = nameInput.onblur = () => {
@@ -1586,6 +1572,19 @@ class Editor extends Game {
             if (name !== element.getAttribute("name")) {
                 this.renameElement(element, name);
             }
+        }
+
+        for (let textarea of this.editorInspector.querySelectorAll("textarea")) {
+            textarea.setAttribute("autocomplete", "off");
+            textarea.setAttribute("autocorrect", "off");
+            textarea.setAttribute("autocapitalize", "off");
+            textarea.setAttribute("spellcheck", "off");
+            textarea.style.width = "100%";
+            textarea.addEventListener("input", function() {
+                this.style.height = "";
+                this.style.height = this.scrollHeight + "px";
+            })
+            textarea.style.height = textarea.scrollHeight + "px";
         }
 
         const selectedInspector = document.body.querySelector(".fh-toolbar .inspector.selected");
