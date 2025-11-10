@@ -20,6 +20,7 @@ body, html {
     -webkit-transform-origin: 0 0;
     -moz-transform-origin: 0 0;
     -o-transform-origin: 0 0;
+    will-change: transform;
 }
 .fh-clickzone {
     position: absolute;

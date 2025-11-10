@@ -290,12 +290,12 @@ class Editor extends Game {
     doodlemodeMousedown(e) {
         const padding = 5;
         const gameRect = this.cachedGameRect;
-        var canvasRect = [e.pageX - gameRect.left, e.pageY - gameRect.top, 1, 1];
+        var canvasRect = [e.pageX - gameRect.left, e.pageY - gameRect.top, 0, 0];
         const element = this.createElement(
             canvasRect[0] / gameRect.width * 100,
             canvasRect[1] / gameRect.height * 100,
             1, 1,
-            `<svg width="0" height="0"><path fill="none" stroke="black" stroke-width="1" d=""></path></svg>`
+            `<svg width="0" height="0" viewBox="0 0 0 0"><path fill="none" stroke="black" stroke-width="1" d="" /></svg>`
         )
         const svg = element.querySelector("svg");
         const path = svg.firstElementChild;
@@ -324,6 +324,7 @@ class Editor extends Game {
 
             svg.setAttribute("width", canvasRect[2] + padding * 2);
             svg.setAttribute("height", canvasRect[3] + padding * 2);
+            svg.setAttribute("viewBox", `0 0 ${canvasRect[2] + padding * 2} ${canvasRect[3] + padding * 2}`)
 
             for (let point of pathPoints) {
                 point[0] -= offset[0];
@@ -348,6 +349,16 @@ class Editor extends Game {
                 [(canvasRect[2] + canvasRect[0] + padding) / this.cachedGameRect.width * 100, (canvasRect[3] + canvasRect[1] + padding) / this.cachedGameRect.height * 100],
                 [(canvasRect[0] - padding) / this.cachedGameRect.width * 100, (canvasRect[3] + canvasRect[1] + padding) / this.cachedGameRect.height * 100]
             ]);
+            var transform = element.style.transform;
+            element.style.transform = "";
+            svg.style.display = 'none';
+            svg.offsetHeight;
+            requestAnimationFrame(() => {
+                svg.style.display = '';
+                requestAnimationFrame(() => {
+                    element.style.transform = transform;
+                })
+            })
             document.removeEventListener("mousemove", mousemoveEvent);
             document.removeEventListener("mouseup", mouseupEvent);
         }
