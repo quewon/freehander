@@ -131,6 +131,7 @@ class Game {
             if (element.dataset.onclick && element.dataset.onclick.trim() !== "") {
                 const clickzone = document.createElement("div");
                 clickzone.className = "fh-clickzone";
+                clickzone.setAttribute("name", element.getAttribute("name"));
                 
                 var points = this.createElementPointsArray(element);
                 var min = [Infinity, Infinity];
@@ -220,6 +221,10 @@ class Game {
             points[2][0] * this.cachedGameRect.width / 100, 
             points[2][1] * this.cachedGameRect.height / 100,
         );
+    }
+
+    findElementClickzone(element) {
+        return element.parentElement.querySelector(`.fh-clickzone[name="${element.getAttribute("name")}"]`);
     }
 
     getElementAtPath(path) {
@@ -364,12 +369,17 @@ class Game {
 
     show(path) {
         const element = this.getElementAtPath(path);
+        const clickzone = this.findElementClickzone(element);
         element.classList.remove("hidden");
+        if (clickzone) clickzone.classList.remove("hidden");
         this.updateElementTransform(element);
     }
 
     hide(path) {
-        this.getElementAtPath(path).classList.add("hidden");
+        const element = this.getElementAtPath(path);
+        const clickzone = this.findElementClickzone(element);
+        element.classList.add("hidden");
+        if (clickzone) clickzone.classList.add("hidden");
     }
 
     async seconds(seconds) {
