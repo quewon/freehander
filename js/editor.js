@@ -301,10 +301,6 @@ class Editor extends Game {
         const path = svg.firstElementChild;
         var pathPoints = [[0, 0]];
 
-        var styleElement = document.createElement("style");
-        styleElement.textContent = "@scope {\n  :scope {\n    fill: none;\n    stroke: black;\n    stroke-width: 1;\n  }\n}";
-        element.prepend(styleElement);
-
         const mousemoveEvent = (e) => {
             const min = [
                 Math.min(canvasRect[0], (e.pageX - gameRect.left)),
