@@ -188,7 +188,7 @@ class Game {
             this.updateElementTransform(element);
         }
 
-        for (let svg of document.querySelectorAll("svg")) {
+        for (let svg of document.querySelectorAll(".fh-slide.open > .fh-element svg")) {
             const element = svg.closest(".fh-element");
             if (!element) continue;
             const transform = element.style.transform;
@@ -301,7 +301,10 @@ class Game {
         }
 
         const previousSlide = this.currentSlide;
-        this.currentSlide = this.getElementAtPath(path);
+        try {
+            this.currentSlide = this.getElementAtPath(path);
+        }
+        catch { }
 
         for (let open of document.querySelectorAll(".open"))
             open.classList.remove("open");
@@ -372,24 +375,7 @@ class Game {
         }
 
         if (this.cachedGameRect) {
-            for (let element of document.querySelectorAll(".fh-slide.open > .fh-element")) {
-                this.updateElementTransform(element);
-            }
-
-            for (let svg of this.currentSlide.querySelectorAll("svg")) {
-                const element = svg.closest(".fh-element");
-                if (!element) continue;
-                const transform = element.style.transform;
-                element.style.transform = "";
-                svg.style.display = 'none';
-                svg.offsetHeight;
-                requestAnimationFrame(() => {
-                    svg.style.display = '';
-                    requestAnimationFrame(() => {
-                        element.style.transform = transform;
-                    })
-                })
-            }
+            this.onresize();
         }
     }
 
