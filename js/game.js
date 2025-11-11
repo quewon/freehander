@@ -233,6 +233,7 @@ class Game {
     }
 
     getElementAtPath(path) {
+        var originalSlide = this.currentSlide;
         var element = this.currentSlide;
         var ignoreSpecialParts = false;
         for (let part of path.split("/")) {
@@ -244,7 +245,8 @@ class Game {
                 case "..":
                     if (!ignoreSpecialParts) {
                         if (element === this.gameElement) {
-                            throw new Error(`could not reach path "${path}" from ${this.getPath()}`);
+                            console.error(`could not reach path "${path}" from ${this.getPath()}. returning original slide.`);
+                            return originalSlide;
                         } else {
                             element = element.parentElement;
                         }
@@ -266,7 +268,8 @@ class Game {
                         }
                     }
                     if (!partFound) {
-                        throw new Error(`could not reach path "${path}" from ${this.getPath()}`);
+                        console.error(`could not reach path "${path}" from ${this.getPath()}. returning original slide.`);
+                        return originalSlide;
                     }
                     break;
             }
@@ -301,10 +304,7 @@ class Game {
         }
 
         const previousSlide = this.currentSlide;
-        try {
-            this.currentSlide = this.getElementAtPath(path);
-        }
-        catch { }
+        this.currentSlide = this.getElementAtPath(path);
 
         for (let open of document.querySelectorAll(".open"))
             open.classList.remove("open");
