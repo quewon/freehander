@@ -520,6 +520,10 @@ class Editor extends Game {
 
     async playGame() {
         for (let asset of this.gameElement.querySelectorAll("[data-filepath]")) {
+            if (!this.mediaFolder) {
+                console.error("media folder was not initialized.");
+                break;
+            }
             const referenceElement = this.mediaFolder.querySelector(`[data-filepath="${asset.dataset.filepath}"]`);
             if (!referenceElement) {
                 console.error(`media asset "${asset.dataset.filepath}" was not found.`);
@@ -557,6 +561,10 @@ class Editor extends Game {
         var zip = new JSZip();
         zip.file("index.html", await this.createGameFile());
         for (let key in mediaContained) {
+            if (!this.mediaFolder) {
+                console.error("media folder was not initialized.");
+                break;
+            }
             var source = this.mediaFolder.querySelector(`[data-filepath="${key}"]`);
             if (!source) {
                 console.error(`the file "${key}" needed for export was not found.`);
@@ -575,15 +583,7 @@ class Editor extends Game {
     loadGame() {
         const input = document.querySelector("input[name=html_input]");
         input.onchange = () => {
-            var htmlFile;
-            // var mediaDirectory;
-            // if (input.files.length > 1) {
-            //     for (let file of input.files) {
-            //         console.log(file);
-            //     }
-            // } else {
-                htmlFile = input.files[0];
-            // }
+            var htmlFile = input.files[0];
             if (htmlFile) {
                 var reader = new FileReader();
                 reader.onload = (e) => {
@@ -1137,9 +1137,7 @@ class Editor extends Game {
         var preview = this.findSlidePreview(slide).querySelector(".fh-slide-preview");
         preview.innerHTML = "";
         for (let child of slide.children) {
-            if (child.classList.contains("fh-element")) {
-                preview.appendChild(child.cloneNode(true));
-            }
+            preview.appendChild(child.cloneNode(true));
         }
     }
     
@@ -1324,6 +1322,10 @@ class Editor extends Game {
         this.openElement(element);
 
         for (let asset of element.querySelectorAll("[data-filepath]")) {
+            if (!this.mediaFolder) {
+                console.error("media folder was not initialized.");
+                break;
+            }
             const referenceElement = this.mediaFolder.querySelector(`[data-filepath="${asset.dataset.filepath}"]`);
             if (!referenceElement) {
                 console.error(`media asset "${asset.dataset.filepath}" was not found.`);
@@ -1557,6 +1559,7 @@ class Editor extends Game {
             cssInput.value = styleElement.textContent;
             cssInput.addEventListener("input", () => {
                 styleElement.textContent = cssInput.value;
+                this.updateSlidePreview(element);
             })
         }
 

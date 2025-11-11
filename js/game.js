@@ -104,7 +104,9 @@ class Game {
             this.goto(this.getPath(slide));
         }
 
-        this.onresize();
+        requestAnimationFrame(() => {
+            this.onresize();
+        });
     }
 
     initGameElement(gameElement) {
@@ -129,7 +131,9 @@ class Game {
         for (let element of this.gameElement.querySelectorAll(".fh-element")) {
             //TODO: proper script parsing here to check if script is empty / only populated with comments
             if (element.dataset.onclick && element.dataset.onclick.trim() !== "") {
-                const clickzone = document.createElement("div");
+                const clickzone = document.createElement("button");
+                clickzone.type = "button";
+                clickzone.textContent = element.textContent;
                 clickzone.className = "fh-clickzone";
                 clickzone.setAttribute("name", element.getAttribute("name"));
                 
@@ -370,6 +374,21 @@ class Game {
         if (this.cachedGameRect) {
             for (let element of document.querySelectorAll(".fh-slide.open > .fh-element")) {
                 this.updateElementTransform(element);
+            }
+
+            for (let svg of this.currentSlide.querySelectorAll("svg")) {
+                const element = svg.closest(".fh-element");
+                if (!element) continue;
+                const transform = element.style.transform;
+                element.style.transform = "";
+                svg.style.display = 'none';
+                svg.offsetHeight;
+                requestAnimationFrame(() => {
+                    svg.style.display = '';
+                    requestAnimationFrame(() => {
+                        element.style.transform = transform;
+                    })
+                })
             }
         }
     }

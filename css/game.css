@@ -23,9 +23,12 @@ body, html {
     will-change: transform;
 }
 .fh-clickzone {
+    background: transparent;
+    border: 1px solid transparent;
     position: absolute;
     cursor: pointer;
     z-index: 1;
+    color: transparent;
 }
 .fh-clickzone:hover {
     border: 1px solid gray;
