@@ -121,14 +121,14 @@ class Editor extends Game {
             for (let selected of selectedClickzones) {
                 var element;
                 if (this.slidesContainer.classList.contains("focused")) {
-                    element = this.currentSlide.parentElement.querySelector(`[name="${selected.getAttribute("name")}"]`);
+                    element = this.currentSlide.parentElement.querySelector(`:scope > [name="${selected.getAttribute("name")}"]`);
                     var clone = element.cloneNode(true);
                     for (let slide of clone.querySelectorAll(".fh-slide")) {
                         slide.remove();
                     }
                     html += clone.outerHTML;
                 } else {
-                    element = this.currentSlide.querySelector(`[name="${selected.getAttribute("name")}"]`);
+                    element = this.currentSlide.querySelector(`:scope > [name="${selected.getAttribute("name")}"]`);
                     html += element.outerHTML;
                 }
                 selectedElements.push(element);
@@ -1288,9 +1288,7 @@ class Editor extends Game {
         
         var basename = "element";
         var i = 1;
-        while (this.currentSlide.parentElement.querySelector(
-            `.fh-slide[name="${this.currentSlide.getAttribute("name")}"] > [name="${basename+i}"]`
-        )) {
+        while (this.currentSlide.querySelector(`:scope > [name="${basename+i}"]`)) {
             i++;
         }
         const name = basename + i;
@@ -1549,7 +1547,7 @@ class Editor extends Game {
             var styleElement = element.querySelector(":scope > style");
             if (!styleElement) {
                 styleElement = document.createElement("style");
-                styleElement.textContent = "@scope {\n  :scope {\n    color: inherit;\n  }\n}";
+                styleElement.textContent = "@scope {\n  svg {\n    stroke: black;\n    fill: none;\n  }\n}";
                 element.prepend(styleElement);
             }
             cssInput.value = styleElement.textContent;
