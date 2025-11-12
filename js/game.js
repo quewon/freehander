@@ -207,29 +207,31 @@ class Game {
             points[2][0] * this.cachedGameRect.width / 100, 
             points[2][1] * this.cachedGameRect.height / 100,
         );
-        const svgs = element.querySelectorAll("svg");
-        if (svgs.length > 0) {
-            element.style.transform = "";
-            for (let svg of svgs) {
-                svg.style.display = "none";
-                svg.offsetHeight;
-                svg.style.display = "";
-            }
-            requestAnimationFrame(() => {
+        if (!this.editorOverlay) {
+            const svgs = element.querySelectorAll("svg");
+            if (svgs.length > 0) {
+                element.style.transform = "";
+                for (let svg of svgs) {
+                    svg.style.display = "none";
+                    svg.offsetHeight;
+                    svg.style.display = "";
+                }
                 requestAnimationFrame(() => {
-                    transform2d(
-                        element,
-                        points[0][0] * this.cachedGameRect.width / 100, 
-                        points[0][1] * this.cachedGameRect.height / 100,
-                        points[1][0] * this.cachedGameRect.width / 100, 
-                        points[1][1] * this.cachedGameRect.height / 100,
-                        points[3][0] * this.cachedGameRect.width / 100, 
-                        points[3][1] * this.cachedGameRect.height / 100,
-                        points[2][0] * this.cachedGameRect.width / 100, 
-                        points[2][1] * this.cachedGameRect.height / 100,
-                    );
+                    requestAnimationFrame(() => {
+                        transform2d(
+                            element,
+                            points[0][0] * this.cachedGameRect.width / 100, 
+                            points[0][1] * this.cachedGameRect.height / 100,
+                            points[1][0] * this.cachedGameRect.width / 100, 
+                            points[1][1] * this.cachedGameRect.height / 100,
+                            points[3][0] * this.cachedGameRect.width / 100, 
+                            points[3][1] * this.cachedGameRect.height / 100,
+                            points[2][0] * this.cachedGameRect.width / 100, 
+                            points[2][1] * this.cachedGameRect.height / 100,
+                        );
+                    })
                 })
-            })
+            }
         }
     }
 
