@@ -349,17 +349,6 @@ class Editor extends Game {
                 [(canvasRect[2] + canvasRect[0] + padding) / this.cachedGameRect.width * 100, (canvasRect[3] + canvasRect[1] + padding) / this.cachedGameRect.height * 100],
                 [(canvasRect[0] - padding) / this.cachedGameRect.width * 100, (canvasRect[3] + canvasRect[1] + padding) / this.cachedGameRect.height * 100]
             ]);
-            var transform = element.style.transform;
-            element.style.transform = "";
-            svg.style.display = 'none';
-            svg.offsetHeight;
-            requestAnimationFrame(() => {
-                svg.getAttribute("style");
-                svg.removeAttribute("style");
-                requestAnimationFrame(() => {
-                    element.style.transform = transform;
-                })
-            })
             document.removeEventListener("mousemove", mousemoveEvent);
             document.removeEventListener("mouseup", mouseupEvent);
         }
@@ -661,8 +650,8 @@ class Editor extends Game {
             document.removeEventListener("mousemove", mousemoveEvent);
             document.removeEventListener("mouseup", mouseupEvent);
         }
-        clickzone.onmouseup = () => {
-            if (editMode === "select") {
+        clickzone.onmouseup = (e) => {
+            if (editMode === "select" && e.button === 0) {
                 if (!cancelClick) {
                     this.selectElement(element);
                 }
@@ -683,55 +672,53 @@ class Editor extends Game {
             cancelClick = false;
             mousedownPosition = [e.pageX, e.pageY];
 
-            if (editMode === "select") {
-                if (e.button === 0) {
-                    if (!initialClick) {
-                        initialClick = true;
-                        doubleClick = false;
-                        doubleClickTimeout = setTimeout(() => {
-                            initialClick = false;
-                        }, 500);
-                    } else {
-                        clearTimeout(doubleClickTimeout);
+            if (editMode === "select" && e.button === 0) {
+                if (!initialClick) {
+                    initialClick = true;
+                    doubleClick = false;
+                    doubleClickTimeout = setTimeout(() => {
                         initialClick = false;
-                        doubleClick = true;
-                    }
-
-                    if (!shiftKey && !clickzone.classList.contains("selected")) {
-                        for (let name in openElements) {
-                            if (openElements[name].clickzone.classList.contains("selected"))
-                                this.deselectElement(openElements[name].element);
-                        }
-                    }
-
-                    const rect = this.cachedGameRect;
-                    const x = (e.pageX - rect.left) / rect.width * 100;
-                    const y = (e.pageY - rect.top) / rect.height * 100;
-
-                    const selected = this.editorOverlay.querySelectorAll(".fh-editor-clickzone.selected");
-                    if (clickzone.classList.contains("selected")) {
-                        grabbedClickzones = [...selected];
-                    } else if (shiftKey) {
-                        grabbedClickzones = [...selected, clickzone];
-                    } else {
-                        grabbedClickzones = [clickzone];
-                    }
-                    
-                    grabOffsets = [];
-                    for (let clickzone of grabbedClickzones) {
-                        const name = clickzone.getAttribute("name");
-                        const el = openElements[name].element;
-                        if (!shiftKey) this.bringElementToFront(el);
-                        const center = this.getElementCenter(el);
-                        grabOffsets.push([
-                            center[0] - x,
-                            center[1] - y
-                        ]);
-                    }
-
-                    document.addEventListener("mousemove", mousemoveEvent);
-                    document.addEventListener("mouseup", mouseupEvent);
+                    }, 500);
+                } else {
+                    clearTimeout(doubleClickTimeout);
+                    initialClick = false;
+                    doubleClick = true;
                 }
+
+                if (!shiftKey && !clickzone.classList.contains("selected")) {
+                    for (let name in openElements) {
+                        if (openElements[name].clickzone.classList.contains("selected"))
+                            this.deselectElement(openElements[name].element);
+                    }
+                }
+
+                const rect = this.cachedGameRect;
+                const x = (e.pageX - rect.left) / rect.width * 100;
+                const y = (e.pageY - rect.top) / rect.height * 100;
+
+                const selected = this.editorOverlay.querySelectorAll(".fh-editor-clickzone.selected");
+                if (clickzone.classList.contains("selected")) {
+                    grabbedClickzones = [...selected];
+                } else if (shiftKey) {
+                    grabbedClickzones = [...selected, clickzone];
+                } else {
+                    grabbedClickzones = [clickzone];
+                }
+                
+                grabOffsets = [];
+                for (let clickzone of grabbedClickzones) {
+                    const name = clickzone.getAttribute("name");
+                    const el = openElements[name].element;
+                    if (!shiftKey) this.bringElementToFront(el);
+                    const center = this.getElementCenter(el);
+                    grabOffsets.push([
+                        center[0] - x,
+                        center[1] - y
+                    ]);
+                }
+
+                document.addEventListener("mousemove", mousemoveEvent);
+                document.addEventListener("mouseup", mouseupEvent);
             }
         }
         clickzone.addEventListener("contextmenu", e => {
