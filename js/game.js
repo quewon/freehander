@@ -81,8 +81,9 @@ class Game {
 
     constructor(gameElement) {
         this.init(gameElement);
-        window.onresize = this.onresize.bind(this);
-        setTimeout(window.onresize, 50);
+        window.onresize = window.onload = () => {
+            this.onresize();
+        }
     }
 
     init(gameElement) {
@@ -94,19 +95,17 @@ class Game {
 
         const openSlides = this.gameElement.querySelectorAll(".fh-slide.open");
         if (openSlides.length > 0) {
-            this.goto(this.getPath(openSlides[openSlides.length - 1]));
+            this.goto(openSlides[openSlides.length - 1]);
         } else {
             console.error("no open slide found. picking topmost slide.");
             const slide = this.gameElement.querySelector(".fh-slide");
             if (!slide) {
                 throw new Error("no slides found.");
             }
-            this.goto(this.getPath(slide));
+            this.goto(slide);
         }
-
-        requestAnimationFrame(() => {
-            this.onresize();
-        });
+        
+        this.onresize();
     }
 
     initGameElement(gameElement) {
@@ -183,25 +182,7 @@ class Game {
         this.gameElement.style.height = h + "px";
         this.gameElement.style.fontSize = (16 * w / 600) + "px";
         this.cachedGameRect = this.gameElement.getBoundingClientRect();
-
-        for (let element of document.querySelectorAll(".fh-slide.open > .fh-element")) {
-            this.updateElementTransform(element);
-        }
-
-        for (let svg of document.querySelectorAll(".fh-slide.open > .fh-element svg")) {
-            const element = svg.closest(".fh-element");
-            if (!element) continue;
-            const transform = element.style.transform;
-            element.style.transform = "";
-            svg.style.display = 'none';
-            svg.offsetHeight;
-            requestAnimationFrame(() => {
-                svg.style.display = '';
-                requestAnimationFrame(() => {
-                    element.style.transform = transform;
-                })
-            })
-        }
+        this.goto(this.currentSlide);
     }
 
     createElementPointsArray(element) {
@@ -213,7 +194,7 @@ class Game {
         ]
     }
 
-    updateElementTransform(element, points) {
+    updateTransform(element, points) {
         points = points || this.createElementPointsArray(element);
         transform2d(
             element,
@@ -226,6 +207,30 @@ class Game {
             points[2][0] * this.cachedGameRect.width / 100, 
             points[2][1] * this.cachedGameRect.height / 100,
         );
+        const svgs = element.querySelectorAll("svg");
+        if (svgs.length > 0) {
+            element.style.transform = "";
+            for (let svg of svgs) {
+                svg.style.display = "none";
+                svg.offsetHeight;
+                svg.style.display = "";
+            }
+            requestAnimationFrame(() => {
+                requestAnimationFrame(() => {
+                    transform2d(
+                        element,
+                        points[0][0] * this.cachedGameRect.width / 100, 
+                        points[0][1] * this.cachedGameRect.height / 100,
+                        points[1][0] * this.cachedGameRect.width / 100, 
+                        points[1][1] * this.cachedGameRect.height / 100,
+                        points[3][0] * this.cachedGameRect.width / 100, 
+                        points[3][1] * this.cachedGameRect.height / 100,
+                        points[2][0] * this.cachedGameRect.width / 100, 
+                        points[2][1] * this.cachedGameRect.height / 100,
+                    );
+                })
+            })
+        }
     }
 
     findElementClickzone(element) {
@@ -233,6 +238,9 @@ class Game {
     }
 
     getElementAtPath(path) {
+        if (path.length > 0 && path[path.length - 1] === "/") {
+            path = path.substring(0, path.length - 1);
+        }
         var originalSlide = this.currentSlide;
         var element = this.currentSlide;
         var ignoreSpecialParts = false;
@@ -291,10 +299,6 @@ class Game {
     }
 
     goto(path) {
-        if (path.length > 0 && path[path.length - 1] === "/") {
-            path = path.substring(0, path.length - 1);
-        }
-
         for (let slide of this.gameElement.querySelectorAll(".fh-slide.open")) {
             slide.classList.remove("open");
         }
@@ -304,7 +308,7 @@ class Game {
         }
 
         const previousSlide = this.currentSlide;
-        this.currentSlide = this.getElementAtPath(path);
+        this.currentSlide = typeof path === "string" ? this.getElementAtPath(path) : path;
 
         for (let open of document.querySelectorAll(".open"))
             open.classList.remove("open");
@@ -352,6 +356,11 @@ class Game {
             for (let s of slidesEntered) {
                 if (s.dataset.onenter)
                     this.runScript(s.dataset.onenter, s);
+                for (let element of s.children) {
+                    if (!element.classList.contains("hidden") && element.classList.contains("fh-element") && element.dataset.onshow) {
+                        this.runScript(element.dataset.onshow, element);
+                    }
+                }
                 if (!this.editorOverlay) {
                     for (let element of s.children) {
                         if (element.classList.contains("fh-element")) {
@@ -363,19 +372,12 @@ class Game {
                     }
                 }
             }
-        } else {
-            if (this.currentSlide.dataset.onenter)
-                this.runScript(this.currentSlide.dataset.onenter, this.currentSlide);
-        }
-
-        for (let element of this.currentSlide.children) {
-            if (!element.classList.contains("hidden") && element.classList.contains("fh-element") && element.dataset.onshow) {
-                this.runScript(element.dataset.onshow, element);
-            }
         }
 
         if (this.cachedGameRect) {
-            this.onresize();
+            for (let element of document.querySelectorAll(".fh-slide.open > .fh-element")) {
+                this.updateTransform(element);
+            }
         }
     }
 
@@ -384,7 +386,7 @@ class Game {
         const clickzone = this.findElementClickzone(element);
         element.classList.remove("hidden");
         if (clickzone) clickzone.classList.remove("hidden");
-        this.updateElementTransform(element);
+        this.updateTransform(element);
         if (element.dataset.onshow) {
             this.runScript(element.dataset.onshow, element);
         }
@@ -418,14 +420,6 @@ class Game {
             }
             document.addEventListener("click", clickListener);
         })
-    }
-
-    play(sound, loop) {
-        
-    }
-
-    stop(sound) {
-
     }
 }
 

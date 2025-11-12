@@ -1,6 +1,12 @@
 import { Game } from "./game.js";
 import { loadAssetFolder } from "./folder.js";
 
+var editMode = "select";
+var shiftKey = false;
+var metaKey = false;
+var mediaFolder;
+var openElements = {};
+
 function isHTML(string) {
     const fragment = document.createRange().createContextualFragment(string);
     fragment.querySelectorAll('*').forEach(el => el.parentNode.removeChild(el));
@@ -8,12 +14,6 @@ function isHTML(string) {
 }
 
 class Editor extends Game {
-    editMode = "select";
-    shiftKey = false;
-    metaKey = false;
-    openElements = {};
-    mediaFolder;
-
     constructor(gameElement) {
         const main = document.querySelector(".fh-game-container");
         main.onmousedown = (e) => {
@@ -21,12 +21,12 @@ class Editor extends Game {
                 document.querySelector(".fh-editor .focused").classList.remove("focused");
             main.classList.add("focused");
             if (e.target.classList.contains("fh-game-container") || e.target === this.editorOverlay) {
-                for (let name in this.openElements) {
-                    if (this.openElements[name].clickzone.classList.contains("selected"))
-                        this.deselectElement(this.openElements[name].element);
+                for (let name in openElements) {
+                    if (openElements[name].clickzone.classList.contains("selected"))
+                        this.deselectElement(openElements[name].element);
                 }
 
-                if (this.editMode === "select") {
+                if (editMode === "select") {
                     this.selectionMousedown(e);
                 }
             }
@@ -57,7 +57,7 @@ class Editor extends Game {
             mediaInput.value = "";
         }
         document.querySelector("[name=media]").onclick = async () => {
-            if (!this.mediaFolder) {
+            if (!mediaFolder) {
                 mediaInput.click();
             } else {
                 this.openMediaInspector();
@@ -71,9 +71,9 @@ class Editor extends Game {
             }
 
             if (e.key === "Shift")
-                this.shiftKey = true;
+                shiftKey = true;
             if (e.key === "Meta" || e.key === "Ctrl")
-                this.metaKey = true;
+                metaKey = true;
 
             if (e.key === "Delete" || e.key === "Backspace") {
                 if (this.slidesContainer.classList.contains("focused")) {
@@ -82,7 +82,7 @@ class Editor extends Game {
                     }
                 } else if (!this.editorInspector.classList.contains("focused")) {
                     for (let clickzone of this.editorOverlay.querySelectorAll(".fh-editor-clickzone.selected")) {
-                        this.deleteElement(this.openElements[clickzone.getAttribute("name")].element);
+                        this.deleteElement(openElements[clickzone.getAttribute("name")].element);
                     }
                 }
             }
@@ -134,24 +134,24 @@ class Editor extends Game {
                 selectedElements.push(element);
             }
             if (html !== "") {
-                if (this.metaKey && e.code === "KeyC") {
+                if (metaKey && e.code === "KeyC") {
                     //copy
                     navigator.clipboard.writeText(html);
                     e.preventDefault();
-                } else if (this.metaKey && e.code === "KeyX") {
+                } else if (metaKey && e.code === "KeyX") {
                     //cut
                     navigator.clipboard.writeText(html);
                     for (let element of selectedElements) {
                         this.deleteElement(element);
                     }
                     e.preventDefault();
-                } else if (this.metaKey && e.code === "KeyD") {
+                } else if (metaKey && e.code === "KeyD") {
                     //duplicate
                     this.pasteHTML(html, this.currentSlide);
                     e.preventDefault();
                 }
             }
-            if (this.metaKey && e.code === "KeyV") {
+            if (metaKey && e.code === "KeyV") {
                 //paste
                 navigator.clipboard.readText()
                 .then(text => {
@@ -162,17 +162,17 @@ class Editor extends Game {
         })
         document.addEventListener("keyup", e => {
             if (e.key === "Shift")
-                this.shiftKey = false;
+                shiftKey = false;
             if (e.key === "Meta" || e.key === "Ctrl")
-                this.metaKey = false;
+                metaKey = false;
         })
 
         super(gameElement);
         
         this.editorOverlay.addEventListener("mousedown", e => {
-            if (this.editMode === "text") {
+            if (editMode === "text") {
                 this.textmodeMousedown(e);
-            } else if (this.editMode === "doodle") {
+            } else if (editMode === "doodle") {
                 this.doodlemodeMousedown(e);
             }
         })
@@ -261,8 +261,8 @@ class Editor extends Game {
             box.style.width = (max[0] - min[0]) + "%";
             box.style.height = (max[1] - min[1]) + "%";
 
-            for (let name in this.openElements) {
-                const data = this.openElements[name];
+            for (let name in openElements) {
+                const data = openElements[name];
                 const points = data.handle.points;
                 if (
                     min[0] < points[2][0] &&
@@ -271,10 +271,10 @@ class Editor extends Game {
                     max[1] > points[0][1]
                 ) {
                     if (!data.clickzone.classList.contains("selected"))
-                        this.selectElement(this.openElements[name].element);
+                        this.selectElement(openElements[name].element);
                 } else {
                     if (data.clickzone.classList.contains("selected"))
-                        this.deselectElement(this.openElements[name].element);
+                        this.deselectElement(openElements[name].element);
                 }
             }
         }
@@ -369,9 +369,9 @@ class Editor extends Game {
 
     textmodeMousedown(e) {
         const mousedownPosition = [e.pageX, e.pageY];
-        for (let name in this.openElements) {
-            if (this.openElements[name].clickzone.classList.contains("selected"))
-                this.deselectElement(this.openElements[name].element);
+        for (let name in openElements) {
+            if (openElements[name].clickzone.classList.contains("selected"))
+                this.deselectElement(openElements[name].element);
         }
         const box = document.createElement("div");
         box.style.position = "absolute";
@@ -465,9 +465,10 @@ class Editor extends Game {
 
     init(gameElement) {
         super.init(gameElement);
-        setTimeout(() => {
+        window.addEventListener("load", () => {
             this.openElementInspector();
-        }, 100);
+        }, { once: true });
+        this.onresize();
     }
 
     initGameElement(gameElement) {
@@ -516,11 +517,11 @@ class Editor extends Game {
 
     async playGame() {
         for (let asset of this.gameElement.querySelectorAll("[data-filepath]")) {
-            if (!this.mediaFolder) {
+            if (!mediaFolder) {
                 console.error("media folder was not initialized.");
                 break;
             }
-            const referenceElement = this.mediaFolder.querySelector(`[data-filepath="${asset.dataset.filepath}"]`);
+            const referenceElement = mediaFolder.querySelector(`[data-filepath="${asset.dataset.filepath}"]`);
             if (!referenceElement) {
                 console.error(`media asset "${asset.dataset.filepath}" was not found.`);
                 break;
@@ -557,11 +558,11 @@ class Editor extends Game {
         var zip = new JSZip();
         zip.file("index.html", await this.createGameFile());
         for (let key in mediaContained) {
-            if (!this.mediaFolder) {
+            if (!mediaFolder) {
                 console.error("media folder was not initialized.");
                 break;
             }
-            var source = this.mediaFolder.querySelector(`[data-filepath="${key}"]`);
+            var source = mediaFolder.querySelector(`[data-filepath="${key}"]`);
             if (!source) {
                 console.error(`the file "${key}" needed for export was not found.`);
                 continue;
@@ -617,7 +618,7 @@ class Editor extends Game {
         var doubleClickTimeout;
 
         clickzone.onwheel = (e) => {
-            var points = this.openElements[element.getAttribute("name")].handle.points;
+            var points = openElements[element.getAttribute("name")].handle.points;
             const rect = this.cachedGameRect;
             const anchor = [
                 (e.pageX - rect.left) / rect.width * 100,
@@ -641,13 +642,13 @@ class Editor extends Game {
             const y = (e.pageY - rect.top) / rect.height * 100;
             for (let i=0; i<grabbedClickzones.length; i++) {
                 const clickzone = grabbedClickzones[i];
-                const element = this.openElements[clickzone.getAttribute("name")].element;
+                const element = openElements[clickzone.getAttribute("name")].element;
                 const offset = grabOffsets[i];
                 this.setElementCenter(element, [offset[0] + x, offset[1] + y]);
             }
         }
         const mouseupEvent = () => {
-            const points = this.openElements[element.getAttribute("name")].handle.points;
+            const points = openElements[element.getAttribute("name")].handle.points;
             if (!(
                 points[0][0] < 100 &&
                 points[2][0] > 0 &&
@@ -661,7 +662,7 @@ class Editor extends Game {
             document.removeEventListener("mouseup", mouseupEvent);
         }
         clickzone.onmouseup = () => {
-            if (this.editMode === "select") {
+            if (editMode === "select") {
                 if (!cancelClick) {
                     this.selectElement(element);
                 }
@@ -682,7 +683,7 @@ class Editor extends Game {
             cancelClick = false;
             mousedownPosition = [e.pageX, e.pageY];
 
-            if (this.editMode === "select") {
+            if (editMode === "select") {
                 if (e.button === 0) {
                     if (!initialClick) {
                         initialClick = true;
@@ -696,10 +697,10 @@ class Editor extends Game {
                         doubleClick = true;
                     }
 
-                    if (!this.shiftKey && !clickzone.classList.contains("selected")) {
-                        for (let name in this.openElements) {
-                            if (this.openElements[name].clickzone.classList.contains("selected"))
-                                this.deselectElement(this.openElements[name].element);
+                    if (!shiftKey && !clickzone.classList.contains("selected")) {
+                        for (let name in openElements) {
+                            if (openElements[name].clickzone.classList.contains("selected"))
+                                this.deselectElement(openElements[name].element);
                         }
                     }
 
@@ -710,7 +711,7 @@ class Editor extends Game {
                     const selected = this.editorOverlay.querySelectorAll(".fh-editor-clickzone.selected");
                     if (clickzone.classList.contains("selected")) {
                         grabbedClickzones = [...selected];
-                    } else if (this.shiftKey) {
+                    } else if (shiftKey) {
                         grabbedClickzones = [...selected, clickzone];
                     } else {
                         grabbedClickzones = [clickzone];
@@ -719,8 +720,8 @@ class Editor extends Game {
                     grabOffsets = [];
                     for (let clickzone of grabbedClickzones) {
                         const name = clickzone.getAttribute("name");
-                        const el = this.openElements[name].element;
-                        if (!this.shiftKey) this.bringElementToFront(el);
+                        const el = openElements[name].element;
+                        if (!shiftKey) this.bringElementToFront(el);
                         const center = this.getElementCenter(el);
                         grabOffsets.push([
                             center[0] - x,
@@ -799,7 +800,7 @@ class Editor extends Game {
                     const x = (e.pageX - rect.left) / this.cachedGameRect.width * 100;
                     const y = (e.pageY - rect.top) / this.cachedGameRect.height * 100;
                     const n = i >= 3 ? 0 : i + 1;
-                    if (this.shiftKey) {
+                    if (shiftKey) {
                         if (Math.abs(handle.points[i][0] - handle.points[n][0]) > Math.abs(handle.points[i][1] - handle.points[n][1])) {
                             handle.points[i][1] = y + edgeOffsets[0][1];
                             handle.points[n][1] = y + edgeOffsets[1][1];
@@ -852,7 +853,7 @@ class Editor extends Game {
                     const y = (e.pageY - parentRect.top) / this.cachedGameRect.height * 100;
 
                     handle.points[i] = [x, y];
-                    if (this.shiftKey) {
+                    if (shiftKey) {
                         var prev = i-1 < 0 ? 3 : i-1;
                         var next = i+1 > 3 ? 0 : i+1;
                         handle.points[(i%2==0 ? prev : next)][0] = handle.points[i][0];
@@ -877,7 +878,7 @@ class Editor extends Game {
         element.parentElement.prepend(element);
 
         if (element.parentElement === this.currentSlide) {
-            const data = this.openElements[element.getAttribute("name")];
+            const data = openElements[element.getAttribute("name")];
 
             const svg = data.handle.svg;
             svg.parentElement.prepend(svg);
@@ -891,7 +892,7 @@ class Editor extends Game {
         element.parentElement.appendChild(element);
 
         if (element.parentElement === this.currentSlide) {
-            const data = this.openElements[element.getAttribute("name")];
+            const data = openElements[element.getAttribute("name")];
 
             const clickzone = data.clickzone;
             clickzone.parentElement.appendChild(clickzone);
@@ -925,7 +926,7 @@ class Editor extends Game {
     getElementCenter(element) {
         var points;
         if (element.parentElement === this.currentSlide) {
-            points = this.openElements[element.getAttribute("name")].handle.points;
+            points = openElements[element.getAttribute("name")].handle.points;
         } else {
             points = this.createElementPointsArray(element);
         }
@@ -944,7 +945,7 @@ class Editor extends Game {
         const c = this.getElementCenter(element);
         var p;
         if (element.parentElement === this.currentSlide) {
-            p = this.openElements[element.getAttribute("name")].handle.points;
+            p = openElements[element.getAttribute("name")].handle.points;
         } else {
             p = this.createElementPointsArray(element);
         }
@@ -973,8 +974,8 @@ class Editor extends Game {
             ]
         }
 
-        if (this.openElements[element.getAttribute("name")]) {
-            const data = this.openElements[element.getAttribute("name")];
+        if (openElements[element.getAttribute("name")]) {
+            const data = openElements[element.getAttribute("name")];
 
             data.handle.points = points;
 
@@ -1016,7 +1017,7 @@ class Editor extends Game {
         element.dataset.x4 = points[3][0];
         element.dataset.y4 = points[3][1];
 
-        this.updateElementTransform(element);
+        this.updateTransform(element);
         this.updateSlidePreview(element.parentElement);
     }
 
@@ -1161,38 +1162,38 @@ class Editor extends Game {
         super.onresize();
         this.editorOverlay.style.width = this.gameElement.style.width;
         this.editorOverlay.style.height = this.gameElement.style.height;
-        for (let preview of this.slidesContainer.querySelectorAll(".fh-slide-preview")) {
-            this.updateSlidePreviewScale(preview);
-        }
-        for (let slide of this.gameElement.querySelectorAll(".fh-slide")) {
-            this.updateSlidePreview(slide);
-        }
-        var parentSlide = this.currentSlide.parentElement;
-        while (parentSlide !== this.gameElement) {
-            for (let child of parentSlide.children) {
-                if (child.classList.contains("fh-element")) {
-                    this.updateElementTransform(child);
-                }
+        if (this.cachedGameRect) {
+            for (let slide of this.gameElement.querySelectorAll(".fh-slide")) {
+                slide.classList.add("open");
             }
-            parentSlide = parentSlide.parentElement;
+            for (let element of document.querySelectorAll(".fh-element")) {
+                this.updateTransform(element);
+            }
+            for (let slide of this.gameElement.querySelectorAll(".fh-slide")) {
+                this.updateSlidePreview(slide);
+            }
+            for (let preview of this.slidesContainer.querySelectorAll(".fh-slide-preview")) {
+                this.updateSlidePreviewScale(preview);
+            }
+            this.goto(this.currentSlide);
         }
     }
 
     switchMode(modename) {
-        this.editMode = modename || "select";
+        editMode = modename || "select";
         this.editorOverlay.style.cursor = "default";
-        if (this.editMode === "text") {
+        if (editMode === "text") {
             this.editorOverlay.style.cursor = "crosshair";
-        } else if (this.editMode === "doodle") {
+        } else if (editMode === "doodle") {
             this.editorOverlay.style.cursor = "crosshair";
-            for (let name in this.openElements) {
-                this.deselectElement(this.openElements[name].element);
+            for (let name in openElements) {
+                this.deselectElement(openElements[name].element);
             }
         }
         const toolbar = document.querySelector(".fh-toolbar");
         if (toolbar.querySelector(".selected"))
             toolbar.querySelector(".selected").classList.remove("selected");
-        toolbar.querySelector(`[name=${this.editMode}_mode]`).classList.add("selected");
+        toolbar.querySelector(`[name=${editMode}_mode]`).classList.add("selected");
     }
 
     addSlide() {
@@ -1266,17 +1267,17 @@ class Editor extends Game {
                 this.openElementInspector();
         } else if (element.classList.contains("fh-element")) {
             if (element.parentElement === this.currentSlide) {
-                const data = this.openElements[element.getAttribute("name")];
+                const data = openElements[element.getAttribute("name")];
                 data.clickzone.setAttribute("name", name);
                 data.handle.svg.setAttribute("name", name);
-                delete this.openElements[element.getAttribute("name")];
-                this.openElements[name] = data;
+                delete openElements[element.getAttribute("name")];
+                openElements[name] = data;
             }
 
             element.setAttribute("name", name);
 
             if (element.parentElement === this.currentSlide) {
-                const data = this.openElements[element.getAttribute("name")];
+                const data = openElements[element.getAttribute("name")];
                 if (data.clickzone.classList.contains("selected") && document.body.querySelector(".fh-toolbar .selected[name=inspect]"))
                     this.openElementInspector(element);
             }
@@ -1316,11 +1317,11 @@ class Editor extends Game {
         this.openElement(element);
 
         for (let asset of element.querySelectorAll("[data-filepath]")) {
-            if (!this.mediaFolder) {
+            if (!mediaFolder) {
                 console.error("media folder was not initialized.");
                 break;
             }
-            const referenceElement = this.mediaFolder.querySelector(`[data-filepath="${asset.dataset.filepath}"]`);
+            const referenceElement = mediaFolder.querySelector(`[data-filepath="${asset.dataset.filepath}"]`);
             if (!referenceElement) {
                 console.error(`media asset "${asset.dataset.filepath}" was not found.`);
                 break;
@@ -1329,11 +1330,11 @@ class Editor extends Game {
             if (asset.tagName === "source") {
                 asset.parentElement.load();
                 asset.parentElement.onloadeddata = () => {
-                    this.updateElementTransform(element);
+                    this.updateTransform(element);
                 }
             } else {
                 asset.onload = () => {
-                    this.updateElementTransform(element);
+                    this.updateTransform(element);
                 }
             }
         }
@@ -1412,10 +1413,10 @@ class Editor extends Game {
             const slide = element.parentElement;
             if (slide === this.currentSlide) {
                 const name = element.getAttribute("name");
-                const data = this.openElements[name];
+                const data = openElements[name];
                 data.clickzone.remove();
                 data.handle.svg.remove();
-                delete this.openElements[name];
+                delete openElements[name];
             }
             element.remove();
             this.updateSlidePreview(slide);
@@ -1441,7 +1442,7 @@ class Editor extends Game {
 
     deselectElement(element) {
         if (element.parentElement === this.currentSlide) {
-            const data = this.openElements[element.getAttribute("name")];
+            const data = openElements[element.getAttribute("name")];
             data.clickzone.classList.remove("selected");
             data.handle.svg.style.display = "none";
             if (document.body.querySelector(".fh-toolbar .selected[name=inspect]"))
@@ -1451,7 +1452,7 @@ class Editor extends Game {
 
     selectElement(element) {
         if (element.parentElement === this.currentSlide) {
-            const data = this.openElements[element.getAttribute("name")];
+            const data = openElements[element.getAttribute("name")];
             data.clickzone.classList.add("selected");
             data.handle.svg.style.display = "block";
             if (document.body.querySelector(".fh-toolbar .selected[name=inspect]"))
@@ -1463,7 +1464,7 @@ class Editor extends Game {
         if (!element) {
             const selectedElement = this.editorOverlay.querySelector(".selected");
             if (selectedElement) {
-                element = this.openElements[selectedElement.getAttribute("name")].element;
+                element = openElements[selectedElement.getAttribute("name")].element;
             } else {
                 element = this.currentSlide;
             }
@@ -1640,16 +1641,16 @@ class Editor extends Game {
             asset.removeAttribute("src");
         }
 
-        this.mediaFolder = document.createElement("ul");
-        loadAssetFolder(files, this.mediaFolder);
+        mediaFolder = document.createElement("ul");
+        loadAssetFolder(files, mediaFolder);
 
-        for (let file of this.mediaFolder.querySelectorAll(".file")) {
+        for (let file of mediaFolder.querySelectorAll(".file")) {
             file.onmousedown = async (e) => {
                 const type = file.dataset.type;
                 const format = file.dataset.format;
                 const filepath = file.dataset.filepath;
 
-                if (this.editMode !== "select")
+                if (editMode !== "select")
                     this.switchMode();
 
                 const rect = this.cachedGameRect;
@@ -1683,7 +1684,7 @@ class Editor extends Game {
 
                 if (type === "image") {
                     element.querySelector("img").onload = () => {
-                        this.updateElementTransform(element);
+                        this.updateTransform(element);
                     }
                 } else if (type === "video") {
                     const video = element.querySelector("video");
@@ -1719,7 +1720,7 @@ class Editor extends Game {
                     ]);
                 }
 
-                const clickzone = this.openElements[element.getAttribute("name")].clickzone;
+                const clickzone = openElements[element.getAttribute("name")].clickzone;
                 clickzone.onmousedown(e);
             }
         }
@@ -1732,27 +1733,31 @@ class Editor extends Game {
             asset.removeAttribute("src");
         }
 
-        if (!this.mediaFolder) return;
+        if (!mediaFolder) return;
         
         for (let asset of this.gameElement.querySelectorAll("[data-filepath]")) {
-            const referenceElement = this.mediaFolder.querySelector(`[data-filepath="${asset.dataset.filepath}"]`);
+            const referenceElement = mediaFolder.querySelector(`[data-filepath="${asset.dataset.filepath}"]`);
             if (!referenceElement) {
                 console.error(`media asset "${asset.dataset.filepath}" was not found.`);
                 break;
             }
             asset.setAttribute("src", referenceElement.dataset.url);
         }
+
+        setTimeout(() => {
+            this.onresize();
+        }, 500);
     }
 
     openMediaInspector() {
         this.editorInspector.innerHTML = "";
-        this.editorInspector.appendChild(this.mediaFolder);
+        this.editorInspector.appendChild(mediaFolder);
 
         var reloadButton = document.createElement("button");
         reloadButton.type = "button";
         reloadButton.textContent = "(re)load folder";
         reloadButton.onclick = () => {
-            this.mediaFolder = null;
+            mediaFolder = null;
             document.querySelector(".inspector[name=media]").click();
         }
         this.editorInspector.appendChild(reloadButton);
@@ -1766,8 +1771,8 @@ class Editor extends Game {
     goto(path) {
         while (this.slidesContainer.querySelector(".selected"))
             this.slidesContainer.querySelector(".selected").classList.remove("selected");
-        for (let name in this.openElements) {
-            this.deselectElement(this.openElements[name].element);
+        for (let name in openElements) {
+            this.deselectElement(openElements[name].element);
         }
         while (this.editorOverlay.lastElementChild) {
             this.editorOverlay.lastElementChild.remove();
@@ -1787,7 +1792,7 @@ class Editor extends Game {
     }
 
     openElement(element) {
-        this.openElements[element.getAttribute("name")] = {
+        openElements[element.getAttribute("name")] = {
             element: element,
             clickzone: this.createEditorClickzone(element),
             handle: this.createElementHandle(element),
@@ -1801,8 +1806,8 @@ class Editor extends Game {
 
     setElementHTML(element, html) {
         element.innerHTML = html;
-        if (element.getAttribute("name") in this.openElements) {
-            this.updateElementTransform(element);
+        if (element.getAttribute("name") in openElements) {
+            this.updateTransform(element);
         }
         this.updateSlidePreview(element.parentElement);
     }
