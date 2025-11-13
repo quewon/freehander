@@ -413,7 +413,7 @@ class Editor extends Game {
             textarea.value = element.innerHTML;
             textarea.oninput = () => {
                 textarea.style.height = "";
-                textarea.style.height = textarea.scrollHeight + "px";
+                textarea.style.height = (textarea.scrollHeight + 2) + "px";
                 this.setElementHTML(element, textarea.value);
                 if (!sizeSet) {
                     const c = this.getElementCenter(element);
@@ -1572,9 +1572,9 @@ class Editor extends Game {
             textarea.style.width = "100%";
             textarea.addEventListener("input", function() {
                 this.style.height = "";
-                this.style.height = this.scrollHeight + "px";
+                this.style.height = (this.scrollHeight + 2) + "px";
             })
-            textarea.style.height = textarea.scrollHeight + "px";
+            textarea.style.height = (textarea.scrollHeight + 2) + "px";
         }
 
         const selectedInspector = document.body.querySelector(".fh-toolbar .inspector.selected");

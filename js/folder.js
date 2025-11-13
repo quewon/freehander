@@ -110,6 +110,14 @@ function createFileElement(parentElement, filename, parent, type, format) {
     } else {
         url = URL.createObjectURL(file);
     }
+    var previewElement;
+    if (type === "image") {
+        previewElement = createElement({
+            tagName: "span",
+            className: "icon",
+            style: `background-image: url(${url});`
+        })
+    }
     const el = createElement({
         tagName: "li",
         className: "file",
@@ -121,11 +129,7 @@ function createFileElement(parentElement, filename, parent, type, format) {
             format: formatConverter[format] || format
         },
         children: [
-            createElement({
-                tagName: "span",
-                className: "icon",
-                style: url ? `background-image: url(${url});` : ""
-            }),
+            previewElement,
             createElement({
                 tagName: "span",
                 textContent: filename
@@ -150,7 +154,8 @@ function createElement(o) {
     }
     if (o.children) {
         for (let child of o.children) {
-            element.appendChild(child);
+            if (child)
+                element.appendChild(child);
         }
     }
     if (o.dataset) {

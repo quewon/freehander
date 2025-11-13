@@ -214,6 +214,10 @@ body {
     overflow: hidden;
     overflow-y: auto;
 }
+.fh-inspector textarea, .fh-inspector input {
+    width: 100%;
+    resize: none;
+}
 .fh-inspector ul {
     list-style-type: none;
     padding-left: 1.5em;
@@ -234,6 +238,7 @@ body {
     width: 1em;
     height: 1em;
     flex-shrink: 0;
+    background-size: cover;
 }
 .fh-inspector .file:hover,
 .fh-inspector .folder summary:hover {
