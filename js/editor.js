@@ -1493,8 +1493,8 @@ class Editor extends Game {
                 this.togglePreviewCollapse(parent);
             }
             this.selectElement(getSlide(selectedPreview));
+            this.goto(this.currentSlide);
         }
-        this.goto(this.currentSlide);
     }
 
     deleteElement(element) {
@@ -1514,13 +1514,13 @@ class Editor extends Game {
             const preview = this.findSlidePreview(element);
             const nextPreview = preview.nextElementSibling || preview.previousElementSibling;
 
+            if (this.currentSlide === element)
+                this.currentSlide = null;
+
             preview.remove();
             this.reorderPreviews();
             element.remove();
             this.reorderPreviews();
-
-            if (this.currentSlide === element)
-                this.currentSlide = null;
 
             if (!nextPreview) {
                 this.addSlide();
