@@ -1494,6 +1494,7 @@ class Editor extends Game {
             }
             this.selectElement(getSlide(selectedPreview));
         }
+        this.goto(this.currentSlide);
     }
 
     deleteElement(element) {
