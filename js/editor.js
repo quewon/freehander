@@ -1027,7 +1027,7 @@ class Editor extends Game {
             container.classList.add("selected");
         }
         container.onmousedown = (e) => {
-            this.goto(this.getPath(slide));
+            this.goto(container.dataset.path);
             var mousedownPosition = [e.pageX, e.pageY];
             const mousemoveEvent = (e) => {
                 if (Math.abs(mousedownPosition[0] - e.pageX) + Math.abs(mousedownPosition[1] - e.pageY) <= 5) {
@@ -1047,10 +1047,21 @@ class Editor extends Game {
                 clone.querySelector("label").remove();
                 document.querySelector(".fh-editor").appendChild(clone);
                 container.classList.add("dragging");
+
+                var originalInset = parseInt(container.dataset.inset);
+                var collapsedSlides = [];
+                if (container.classList.contains("collapsed")) {
+                    var collapsed = container.nextElementSibling;
+                    while (collapsed && parseInt(collapsed.dataset.inset) > originalInset) {
+                        collapsedSlides.push(collapsed);
+                        collapsed = collapsed.nextElementSibling;
+                    }
+                }
+
                 var mmEvent = (e) => {
                     clone.style.left = (offset[0] + e.pageX) + "px";
                     clone.style.top = (offset[1] + e.pageY) + "px";
-                    for (let slide of [...this.slidesContainer.children]) {
+                    for (let slide of this.slidesContainer.children) {
                         if (slide === container) continue;
                         const rect = slide.getBoundingClientRect();
                         if (e.pageY > rect.top && e.pageY < rect.bottom) {
@@ -1060,18 +1071,29 @@ class Editor extends Game {
                             if (e.pageY < rect.top + rect.height * ratio) {
                                 this.slidesContainer.insertBefore(container, slide);
                             } else {
-                                slide.after(container);
+                                if (slide.classList.contains("collapsed")) {
+                                    var lastChild = slide.nextElementSibling;
+                                    while (lastChild.nextElementSibling && parseInt(lastChild.nextElementSibling.dataset.inset) > parseInt(slide.dataset.inset)) {
+                                        lastChild = lastChild.nextElementSibling;
+                                    }
+                                    lastChild.after(container);
+                                } else {
+                                    slide.after(container);
+                                }
                             }
                             break;
                         }
                     }
 
-                    const previous = container.previousElementSibling;
+                    var previous = container.previousElementSibling;
+                    while (previous && previous.style.display == "none") {
+                        previous = previous.previousElementSibling;
+                    }
                     if (previous) {
                         const style = getComputedStyle(this.slidesContainer);
                         const insetMargin = parseFloat(style.getPropertyValue("--inset-margin"));
                         const padding = parseFloat(style.getPropertyValue("--preview-padding"));
-                        const pixelsInset = clone.querySelector(".fh-slide-preview").getBoundingClientRect().left - padding;
+                        const pixelsInset = clone.querySelector(".fh-slide-preview").getBoundingClientRect().left - this.slidesContainer.getBoundingClientRect().left - padding;
                         var maxInset = parseInt(previous.dataset.inset) + 1;
                         var targetInset = 0;
                         if (pixelsInset > insetMargin) {
@@ -1083,6 +1105,10 @@ class Editor extends Game {
                     }
                 }
                 var muEvent = () => {
+                    for (let collapsed of collapsedSlides) {
+                        collapsed.dataset.inset = parseInt(collapsed.dataset.inset) - originalInset + parseInt(container.dataset.inset);
+                    }
+                    container.after(...collapsedSlides);
                     this.reorderPreviews();
                     clone.remove();
                     container.classList.remove("dragging");
@@ -1108,12 +1134,51 @@ class Editor extends Game {
         label.textContent = name;
         container.appendChild(label);
 
+        const button = document.createElement("button");
+        button.textContent = "v";
+        button.style.display = "none";
+        container.appendChild(button);
+        button.onclick = () => {
+            this.togglePreviewCollapse(container);
+        }
+
         this.slidesContainer.appendChild(container);
         this.updateSlidePreview(slide);
         if (this.cachedGameRect)
             this.updateSlidePreviewScale(preview);
 
         return container;
+    }
+
+    togglePreviewCollapse(preview) {
+        var button = preview.querySelector("button");
+        preview.classList.toggle("collapsed");
+        if (preview.classList.contains("collapsed")) {
+            button.textContent = ">";
+        } else {
+            button.textContent = "v";
+        }
+        var inset = parseInt(preview.dataset.inset);
+        var nextPreview = preview.nextElementSibling;
+        while (nextPreview && parseInt(nextPreview.dataset.inset) > inset) {
+            var hidden = preview.classList.contains("collapsed");
+            var parentPreview = this.getParentPreview(nextPreview);
+            while (!hidden && parentPreview !== preview) {
+                if (parentPreview.classList.contains("collapsed"))
+                    hidden = true;
+                parentPreview = this.getParentPreview(parentPreview);
+            }
+            nextPreview.style.display = hidden ? "none" : "block";
+            nextPreview = nextPreview.nextElementSibling;
+        }
+    }
+
+    getParentPreview(preview) {
+        var parentPreview = preview.previousElementSibling;
+        while (parentPreview && parseInt(parentPreview.dataset.inset) >= parseInt(preview.dataset.inset)) {
+            parentPreview = parentPreview.previousElementSibling;
+        }
+        return parentPreview;
     }
 
     updateSlidePreview(slide) {
@@ -1128,21 +1193,37 @@ class Editor extends Game {
     updateSlidePreviewScale(preview) {
         const inset = parseInt(preview.parentElement.dataset.inset);
         const style = getComputedStyle(this.slidesContainer);
-        const width = parseFloat(style.getPropertyValue("--preview-width"));
         const padding = parseFloat(style.getPropertyValue("--preview-padding"));
         const insetMargin = parseFloat(style.getPropertyValue("--inset-margin"));
-        const scale = (width - insetMargin * inset) / this.cachedGameRect.width;
+        const size = parseFloat(style.getPropertyValue("--preview-size"));
+        var aspectRatio = parseFloat(this.gameElement.dataset.aspectratio);
+        if (!aspectRatio || isNaN(aspectRatio)) aspectRatio = 1;
+
+        var scale;
+        if (aspectRatio < 1) {
+            scale = size / this.cachedGameRect.height;
+        } else {
+            scale = size / this.cachedGameRect.width;
+        }
 
         preview.style.width = this.gameElement.style.width;
         preview.style.height = this.gameElement.style.height;
         preview.style.fontSize = this.gameElement.style.fontSize;
         preview.style.transform = `scale(${scale})`;
 
-        var left = padding + insetMargin * inset;
+        var left = insetMargin * inset + parseFloat(style.getPropertyValue("--preview-left-margin"));
         preview.style.left = left + "px";
         preview.nextElementSibling.style.left = left + "px";
         preview.style.top = padding + "px";
+
+        preview.parentElement.style.width = Math.max(
+            250, 
+            this.cachedGameRect.width * scale + insetMargin * inset + parseFloat(style.getPropertyValue("--preview-right-margin")) + parseFloat(style.getPropertyValue("--preview-left-margin"))
+        ) + "px";
         preview.parentElement.style.height = ((this.cachedGameRect.height * scale) + padding * 2) + "px";
+
+        var button = preview.parentElement.querySelector("button");
+        button.style.left = insetMargin * inset + "px";
     }
 
     onresize() {
@@ -1225,9 +1306,9 @@ class Editor extends Game {
         this.goto(this.getPath(slide));
     }
 
-    renameElement(element, name) {
+    renameElement(element, name, preview) {
         if (element.classList.contains("fh-slide")) {
-            const preview = this.findSlidePreview(element);
+            preview = preview || this.findSlidePreview(element);
             preview.querySelector("label").textContent = name;
             preview.setAttribute("name", name);
             
@@ -1250,8 +1331,9 @@ class Editor extends Game {
                 data.preview.dataset.path = this.getPath(data.element);
             }
 
-            if (document.body.querySelector(".fh-toolbar .selected[name=inspect]"))
-                this.openElementInspector();
+            if (document.body.querySelector(".fh-toolbar .selected[name=inspect]")) {
+                this.editorInspector.querySelector("[name=rename]").value = name;
+            }
         } else if (element.classList.contains("fh-element")) {
             if (element.parentElement === this.currentSlide) {
                 const data = openElements[element.getAttribute("name")];
@@ -1266,7 +1348,7 @@ class Editor extends Game {
             if (element.parentElement === this.currentSlide) {
                 const data = openElements[element.getAttribute("name")];
                 if (data.clickzone.classList.contains("selected") && document.body.querySelector(".fh-toolbar .selected[name=inspect]"))
-                    this.openElementInspector(element);
+                    this.editorInspector.querySelector("[name=rename]").value = name;
             }
         }
     }
@@ -1330,51 +1412,49 @@ class Editor extends Game {
     }
     
     reorderPreviews() {
-        var elementMatches = {};
+        var slidePreviewPairs = [];
         for (let preview of this.slidesContainer.children) {
-            elementMatches[preview.dataset.path] = this.getElementAtPath(preview.dataset.path);
+            slidePreviewPairs.push({
+                preview: preview,
+                slide: this.getElementAtPath(preview.dataset.path)
+            })
+        }
+        const getSlide = (preview) => {
+            for (let check of slidePreviewPairs) {
+                if (check.preview === preview)
+                    return check.slide;
+            }
+            return null;
+        }
+        for (let selected of this.slidesContainer.querySelectorAll(".selected")) {
+            const slide = getSlide(selected);
+            var name = slide.getAttribute("name");
+            var nameExists = true;
+            while (nameExists) {
+                nameExists = false;
+                for (let child of slide.parentElement.querySelectorAll(`:scope > [name="${name}"]`)) {
+                    if (child !== slide) {
+                        name = name + "*";
+                        nameExists = true;
+                    }
+                }
+            }
+            if (name !== slide.getAttribute("name")) {
+                this.renameElement(slide, name, selected);
+            }
         }
         for (let preview of this.slidesContainer.children) {
-            if (preview.dataset.inset !== "0") {
-                var parentPreview = preview.previousElementSibling;
-                while (parentPreview && parseInt(parentPreview.dataset.inset) >= parseInt(preview.dataset.inset)) {
-                    parentPreview = parentPreview.previousElementSibling;
-                }
-                if (!parentPreview) {
-                    preview.dataset.inset = "0";
-                } else {
-                    preview.dataset.inset = parseInt(parentPreview.dataset.inset) + 1;
-                    const slide = elementMatches[preview.dataset.path];
-                    const parentSlide = this.getElementAtPath(parentPreview.dataset.path);
-
-                    var name = slide.getAttribute("name");
-                    var nameExists = true;
-                    while (nameExists) {
-                        nameExists = false;
-                        for (let child of parentSlide.children) {
-                            if (child !== slide && child.getAttribute("name") === name) {
-                                name = name + "*";
-                                nameExists = true;
-                            }
-                        }
-                    }
-                    if (name !== slide.getAttribute("name")) {
-                        this.renameElement(slide, name);
-                    }
-                    parentSlide.appendChild(slide);
-                    preview.dataset.path = this.getPath(slide);
-                }
-                this.updateSlidePreviewScale(preview.querySelector(".fh-slide-preview"));
-            }
-
-            if (preview.dataset.inset === "0") {
-                const slide = this.getElementAtPath(preview.dataset.path);
-
+            const slide = getSlide(preview);
+            const inset = parseInt(preview.dataset.inset);
+            var parentPreview = this.getParentPreview(preview);
+            if (parentPreview) {
+                preview.dataset.inset = parseInt(parentPreview.dataset.inset) + 1;
+                const parentSlide = getSlide(parentPreview);
                 var name = slide.getAttribute("name");
                 var nameExists = true;
                 while (nameExists) {
                     nameExists = false;
-                    for (let child of this.gameElement.children) {
+                    for (let child of parentSlide.children) {
                         if (child !== slide && child.getAttribute("name") === name) {
                             name = name + "*";
                             nameExists = true;
@@ -1382,16 +1462,37 @@ class Editor extends Game {
                     }
                 }
                 if (name !== slide.getAttribute("name")) {
-                    this.renameElement(slide, name);
+                    this.renameElement(slide, name, preview);
                 }
-
+                parentSlide.appendChild(slide);
+                preview.dataset.path = this.getPath(slide);
+            } else {
+                preview.dataset.inset = "0";
+                var nextPreview = preview.nextElementSibling;
+                while (nextPreview && parseInt(nextPreview.dataset.inset) >= inset) {
+                    nextPreview.dataset.inset = parseInt(nextPreview.dataset.inset) - inset;
+                    nextPreview = nextPreview.nextElementSibling;
+                }
                 this.gameElement.appendChild(slide);
                 preview.dataset.path = this.getPath(slide);
             }
+
+            this.updateSlidePreviewScale(preview.querySelector(".fh-slide-preview"));
+        }
+        for (let preview of this.slidesContainer.children) {
+            preview.querySelector("button").style.display = "none";
+            if (getSlide(preview).querySelectorAll(":scope > .fh-slide").length > 0) {
+                preview.querySelector("button").style.display = "block";
+            }
         }
         const selectedPreview = this.slidesContainer.querySelector(".selected");
-        if (selectedPreview)
-            this.goto(selectedPreview.dataset.path);
+        if (selectedPreview) {
+            const parent = this.getParentPreview(selectedPreview);
+            if (parent && parent.classList.contains("collapsed")) {
+                this.togglePreviewCollapse(parent);
+            }
+            this.selectElement(getSlide(selectedPreview));
+        }
     }
 
     deleteElement(element) {
@@ -1413,8 +1514,8 @@ class Editor extends Game {
 
             preview.remove();
             this.reorderPreviews();
-
             element.remove();
+            this.reorderPreviews();
 
             if (this.currentSlide === element)
                 this.currentSlide = null;
@@ -1552,8 +1653,8 @@ class Editor extends Game {
             var nameExists = true;
             while (nameExists) {
                 nameExists = false;
-                for (let sibling of element.parentElement.children) {
-                    if (sibling !== element && sibling.getAttribute("name") === name) {
+                for (let sibling of element.parentElement.querySelectorAll(`:scope > [name="${name}"]`)) {
+                    if (sibling !== element) {
                         name = name + "*";
                         nameExists = true;
                     }

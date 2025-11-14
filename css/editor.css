@@ -50,19 +50,33 @@ body {
 }
 
 .fh-slides-container {
-    border-right: 1px dotted gray;
-    flex-shrink: 0;
     box-sizing: border-box;
     display: flex;
     flex-direction: column;
-    overflow-y: auto;
-    --preview-width: 100;
+    width: fit-content;
+    min-width: 100%;
+    min-height: 100%;
+    --preview-size: 70;
     --preview-padding: 15;
     --inset-margin: 20;
+    --preview-left-margin: 30;
+    --preview-right-margin: 70;
 }
 .fh-slide-preview-container {
     position: relative;
-    width: calc(1px * (var(--preview-width) + (var(--preview-padding) * 2)));
+}
+.fh-slide-preview-container button {
+    position: absolute;
+    top: 50%;
+    transform: translateY(-50%);
+    width: calc(1px * var(--preview-left-margin));
+    height: 50%;
+    left: 0;
+    font-family: var(--editor-font);
+    background: transparent;
+    border: none;
+    color: inherit;
+    outline: none;
 }
 .fh-slide-preview-container label {
     position: absolute;

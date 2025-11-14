@@ -171,6 +171,7 @@ class Game {
 
     onresize() {
         let ratio = parseFloat(this.gameElement.dataset.aspectratio);
+        if (!ratio || isNaN(ratio)) ratio = 1;
         let w = this.gameElement.parentElement.clientWidth;
         let h = this.gameElement.parentElement.clientHeight;
         if (w / h > ratio) {
