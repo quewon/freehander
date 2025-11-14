@@ -458,6 +458,7 @@ class Editor extends Game {
             this.openElementInspector();
         }, { once: true });
         this.onresize();
+        this.reorderPreviews();
     }
 
     initGameElement(gameElement) {
