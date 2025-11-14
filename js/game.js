@@ -384,22 +384,26 @@ class Game {
         }
     }
 
-    show(path) {
-        const element = this.getElementAtPath(path);
-        const clickzone = this.findElementClickzone(element);
-        element.classList.remove("hidden");
-        if (clickzone) clickzone.classList.remove("hidden");
-        this.updateTransform(element);
-        if (element.dataset.onshow) {
-            this.runScript(element.dataset.onshow, element);
+    show(...paths) {
+        for (let path of paths) {
+            const element = this.getElementAtPath(path);
+            const clickzone = this.findElementClickzone(element);
+            element.classList.remove("hidden");
+            if (clickzone) clickzone.classList.remove("hidden");
+            this.updateTransform(element);
+            if (element.dataset.onshow) {
+                this.runScript(element.dataset.onshow, element);
+            }
         }
     }
 
-    hide(path) {
-        const element = this.getElementAtPath(path);
-        const clickzone = this.findElementClickzone(element);
-        element.classList.add("hidden");
-        if (clickzone) clickzone.classList.add("hidden");
+    hide(...paths) {
+        for (let path of paths) {
+            const element = this.getElementAtPath(path);
+            const clickzone = this.findElementClickzone(element);
+            element.classList.add("hidden");
+            if (clickzone) clickzone.classList.add("hidden");
+        }
     }
 
     async seconds(seconds) {
