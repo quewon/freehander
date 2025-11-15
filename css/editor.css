@@ -31,6 +31,10 @@ body {
         -ms-user-select: none;
             user-select: none;
 }
+.fh-game *,
+.fh-slide-preview-container * {
+    animation: none !important;
+}
 
 .fh-editor-overlay textarea,
 .fh-inspector textarea,

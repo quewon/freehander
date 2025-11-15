@@ -1644,6 +1644,9 @@ class Editor extends Game {
             cssInput.value = styleElement.textContent;
             cssInput.addEventListener("input", () => {
                 styleElement.textContent = cssInput.value;
+                for (let name in openElements) {
+                    this.updateTransform(openElements[name].element);
+                }
                 this.updateSlidePreview(element);
             })
         }
