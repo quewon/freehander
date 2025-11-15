@@ -426,6 +426,8 @@ class Game {
                 document.removeEventListener("keydown", keyListener);
             }
             var keyListener = (e) => {
+                if (e.target.tagName === "INPUT" || e.target.tagName === "TEXTAREA" || e.target.isContentEditable)
+                    return;
                 if (e.key === " ") {
                     resolve();
                     document.removeEventListener("click", clickListener);
