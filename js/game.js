@@ -421,11 +421,19 @@ class Game {
     async click() {
         return new Promise(resolve => {
             var clickListener = () => {
-                console.log("clicked");
                 resolve();
                 document.removeEventListener("click", clickListener);
+                document.removeEventListener("keydown", keyListener);
+            }
+            var keyListener = (e) => {
+                if (e.key === " ") {
+                    resolve();
+                    document.removeEventListener("click", clickListener);
+                    document.removeEventListener("keydown", keyListener);
+                }
             }
             document.addEventListener("click", clickListener);
+            document.addEventListener("keydown", keyListener);
         })
     }
 }
