@@ -137,7 +137,9 @@ body {
     font-family: var(--editor-font);
 }
 .fh-toolbar button,
-.fh-inspector button {
+.fh-inspector button,
+#help-menu button,
+.help-menu-button {
     font-family: inherit;
     font-size: inherit;
     border: 1px solid transparent;
@@ -145,15 +147,21 @@ body {
     padding: 0;
 }
 .fh-toolbar button:hover,
-.fh-inspector button:hover {
+.fh-inspector button:hover,
+#help-menu button:hover,
+.help-menu-button:hover {
     background: var(--slightgray);
 }
 .fh-toolbar button:active,
-.fh-inspector button:active {
+.fh-inspector button:active,
+#help-menu button:active,
+.help-menu-button:active {
     border-color: gray;
 }
 .fh-toolbar button:focus,
-.fh-inspector button:focus {
+.fh-inspector button:focus,
+#help-menu button:focus,
+.help-menu-button:focus {
     outline: none;
     border: 1px solid var(--accent);
 }
@@ -261,4 +269,8 @@ body {
 .fh-inspector .file:hover,
 .fh-inspector .folder summary:hover {
     background-color: var(--slightgray);
+}
+
+#help-menu a {
+    color: var(--accent);
 }

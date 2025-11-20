@@ -36,6 +36,34 @@
                 <div class="fh-inspector"></div>
             </div>
         </div>
+
+        <button type="button" class="help-menu-button" style="
+            position: absolute;
+            bottom: 0;
+            right: 0;
+            font-family: var(--editor-font);
+            font-size: 1.2em;
+            width: 2em;
+            height: 2em;
+            margin: 1em;
+            border: 1px solid gray;
+            border-radius: 50%;
+        " onclick="document.getElementById('help-menu').showModal()">?</button>
+
+        <dialog id="help-menu" style="
+            max-width: 30em;
+            font-family: var(--editor-font);
+        ">
+            <p>
+                <u>about Freehander</u>
+            </p>
+            <p style="text-align: justify">
+                Freehander is a tool for making simple HTML games. You can find out <a href="https://github.com/quewon/freehander/blob/main/README.md" target="_blank">how to use</a> it on the <a href="https://github.com/quewon/freehander" target="_blank">GitHub</a> page, or you can read about <a href="https://quewon.github.io/projects/freehander/" target="_blank">its conception</a> on my personal website.
+            </p>
+            <p style="text-align: center">
+                <button type="button" onclick="document.getElementById('help-menu').close()">close</button>
+            </p>
+        </dialog>
     </div>
 </body>
 <script type="module">
