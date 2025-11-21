@@ -26,7 +26,7 @@ available script commands:
 
 #### pathing
 
-path syntax is important. relative paths (e.g. "slide1/element1") start searching among children (subslides, elements) of the current slide. to go to a sibling of the current slide, prepend ".." to the path. absolute paths (e.g. "/slide1/element1") can also be used, in which searches start among root slides.
+path syntax is important. relative paths (e.g. "slide1/element1") start searching among children (subslides, elements) of the current slide. to go to a sibling of the current slide, prepend "../" to the path. absolute paths (e.g. "/slide1/element1") can also be used, in which searches start among root slides.
 
 ### style
 
