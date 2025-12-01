@@ -24,13 +24,17 @@ available script commands:
 - show(element_path);
 - hide(element_path);
 
+#### pathing
+
+path syntax is important. relative paths (e.g. "slide1/element1") start searching among children (subslides, elements) of the current slide. to go to a sibling of the current slide, prepend "../" to the path. absolute paths (e.g. "/slide1/element1") can also be used, in which searches start among root slides.
+
 ### style
 
 styling is done with css.
 
-everything inside the `@scope { }` block contains the styles within the given element or slide (and its subslides).
+everything inside the `@scope { }` block contains the styles within the given slide (and its elements & subslides).
 
-within a `@scope { }` block, `:scope` is a selector for the given element or slide.
+within a `@scope { }` block, `:scope` can be used as a selector for the given slide.
 
 ### play, load, save, export
 
