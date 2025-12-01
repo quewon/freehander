@@ -294,6 +294,9 @@ class Game {
         while (element !== this.gameElement) {
             path = element.getAttribute("name") + "/" + path;
             element = element.parentElement;
+            if (!element) {
+                return "/";
+            }
         }
         if (path.length > 0) {
             path = path.substring(0, path.length - 1);

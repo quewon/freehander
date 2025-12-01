@@ -7,10 +7,9 @@ var game;
 var editMode = "select";
 var shiftKey = false;
 var metaKey = false;
-var preventNextBlurcall = false;
 var openElements = {};
-var history = [];
-var undos = [];
+var history;
+var undos;
 var doodleSettings = {};
 
 var mediaFolder;
@@ -18,6 +17,7 @@ var editorOverlay = document.querySelector(".fh-editor-overlay");
 var editorInspector = document.querySelector(".fh-inspector");
 var slidesContainer = document.querySelector(".fh-slides-container"); 
 
+// modes
 function switchMode(modename) {
     editMode = modename || "select";
     fh_doodle_tooltip.classList.add("hidden");
@@ -149,6 +149,7 @@ function doodlemodeMousedown(e) {
         ]);
         document.removeEventListener("mousemove", mousemoveEvent);
         document.removeEventListener("mouseup", mouseupEvent);
+        save();
     }
     document.addEventListener("mousemove", mousemoveEvent);
     document.addEventListener("mouseup", mouseupEvent);
@@ -236,6 +237,8 @@ function textmodeMousedown(e) {
                 if (sizeSet) box.remove();
                 if (textarea.value.trim() === "") {
                     deleteElement(element);
+                } else {
+                    save();
                 }
             }
         }, 1);
@@ -251,25 +254,46 @@ function textmodeMousedown(e) {
 
 // save, undo, redo
 function save() {
+    console.log("saved.");
     history.push(document.querySelector(".fh-game").innerHTML);
+    if (history.length > 1000)
+        history.shift();
     undos = [];
 }
 function undo() {
-    var state = history.pop();
-    restoreState(state);
-    undos.push(state);
+    if (history.length > 1) {
+        undos.push(history.pop());
+        restoreState(history[history.length - 1]);
+    } else {
+        console.log("nothing to undo.");
+    }
 }
 function redo() {
-    var state = undos.shift();
-    if (state)
+    var state = undos.pop();
+    if (state) {
+        history.push(state);
         restoreState(state);
-    else
+    } else {
         console.log("nothing to redo.");
+    }
 }
 function restoreState(state) {
     document.querySelector(".fh-game").innerHTML = state;
-    for (let entry of openElements) {
-        selectElement(entry.element);
+
+    Game.prototype.init.call(game, document.querySelector(".fh-game"));
+    reorderPreviews();
+    if (!fh_media_inspector.classList.contains("hidden"))
+        openMediaInspector();
+    else if (!fh_document_inspector.classList.contains("hidden"))
+        openDocumentInspector();
+    else
+        openElementInspector();
+    document.querySelector(":focus")?.blur();
+
+    if (editMode !== "doodle") {
+        for (let name in openElements) {
+            selectElement(openElements[name].element);
+        }
     }
 }
 
@@ -314,15 +338,20 @@ function addSlide() {
     }
 
     game.goto(game.getPath(slide));
+    
+    save();
 }
 function findSlidePreview(slide) {
     return slidesContainer.querySelector(`[data-path="${game.getPath(slide)}"]`);
 }
 function createSlidePreview(slide) {
+    const originalPath = game.getPath(slide);
+    const originalNextSibling = slide.nextElementSibling;
+    const originalPreviousSibling = slide.previousElementSibling;
     const name = slide.getAttribute("name");
     const container = document.createElement("div");
     container.setAttribute("name", name);
-    container.dataset.path = game.getPath(slide);
+    container.dataset.path = originalPath;
 
     var inset = 0;
     var parentSlide = slide.parentElement;
@@ -424,6 +453,12 @@ function createSlidePreview(slide) {
                 container.classList.remove("dragging");
                 document.removeEventListener("mousemove", mmEvent);
                 document.removeEventListener("mouseup", muEvent);
+                if (
+                    game.getPath(slide) !== originalPath || 
+                    slide.nextElementSibling !== originalNextSibling ||
+                    slide.previousElementSibling !== originalPreviousSibling
+                )
+                    save();
             }
             document.addEventListener("mousemove", mmEvent);
             document.addEventListener("mouseup", muEvent);
@@ -494,8 +529,10 @@ function getParentPreview(preview) {
 }
 function updateSlidePreview(slide) {
     slide = slide || game.currentSlide;
-    var preview = findSlidePreview(slide).querySelector(".fh-slide-preview");
-    preview.innerHTML = slide.innerHTML;
+    var preview = findSlidePreview(slide);
+    if (preview) {
+        preview.querySelector(".fh-slide-preview").innerHTML = slide.innerHTML;
+    }
 }
 function updateSlidePreviewScale(preview) {
     const inset = parseInt(preview.parentElement.dataset.inset);
@@ -721,6 +758,8 @@ function deleteElement(element) {
             game.goto(nextPreview.dataset.path);
         }
     }
+
+    save();
 }
 function deselectElement(element) {
     if (element.parentElement === game.currentSlide) {
@@ -796,14 +835,6 @@ function openElementInspector(element) {
         }
     }
 
-    if (!preventNextBlurcall) {
-        for (let input of editorInspector.querySelectorAll("input, textarea")) {
-            if (input.onblur)
-                input.onblur();
-        }
-    }
-    preventNextBlurcall = false;
-
     for (let inspectors of editorInspector.children)
         inspectors.classList.add("hidden");
 
@@ -815,10 +846,12 @@ function openElementInspector(element) {
         fh_element_inspector.querySelector("[name=onshow]").oninput = function() {
             element.dataset.onshow = this.value;
         }
+        fh_element_inspector.querySelector("[name=onshow]").onchange = save;
         fh_element_inspector.querySelector("[name=onclick").value = element.dataset.onclick ? element.dataset.onclick : "";
         fh_element_inspector.querySelector("[name=onclick]").oninput = function() {
             element.dataset.onclick = this.value;
         }
+        fh_element_inspector.querySelector("[name=onclick]").onchange = save;
 
         const htmlInput = fh_element_inspector.querySelector("[name=html]");
         htmlInput.oninput = () => {
@@ -829,12 +862,13 @@ function openElementInspector(element) {
                 htmlInput.style.borderColor = "";
             }
         }
-        htmlInput.onblur = () => {
+        htmlInput.onchange = () => {
             htmlInput.value = element.innerHTML;
             if (htmlInput.value.trim() === "") {
-                preventNextBlurcall = true;
                 console.log("empty element deleted.");
                 deleteElement(element);
+            } else {
+                save();
             }
         }
         htmlInput.value = element.innerHTML;
@@ -847,10 +881,12 @@ function openElementInspector(element) {
         fh_slide_inspector.querySelector("[name=onenter]").oninput = function() {
             element.dataset.onenter = this.value;
         }
+        fh_slide_inspector.querySelector("[name=onenter]").onchange = save;
         fh_slide_inspector.querySelector("[name=onexit]").value = element.dataset.onexit ? element.dataset.onexit : "";
         fh_slide_inspector.querySelector("[name=onexit]").oninput = function() {
             element.dataset.onexit = this.value;
         }
+        fh_slide_inspector.querySelector("[name=onexit]").onchange = save;
 
         const cssInput = fh_slide_inspector.querySelector("[name=css]");
         var styleElement = element.querySelector(":scope > style");
@@ -867,6 +903,7 @@ function openElementInspector(element) {
             }
             updateSlidePreview(element);
         }
+        cssInput.onchange = save;
 
         nameInput = fh_slide_inspector.querySelector("[name=rename]");
     }
@@ -889,6 +926,7 @@ function openElementInspector(element) {
         }
     }
     nameInput.value = element.getAttribute("name");
+    nameInput.onchange = save;
 
     for (let textarea of editorInspector.querySelectorAll("textarea")) {
         textarea.setAttribute("autocomplete", "off");
@@ -1141,6 +1179,9 @@ function createEditorClickzone(element) {
         }
         document.removeEventListener("mousemove", mousemoveEvent);
         document.removeEventListener("mouseup", mouseupEvent);
+
+        if (cancelClick)
+            save();
     }
     clickzone.onmouseup = (e) => {
         if (editMode === "select" && e.button === 0) {
@@ -1671,10 +1712,12 @@ class EditorGame extends Game {
             game.gameElement.dataset.title = this.value;
             document.title = this.value;
         }
+        fh_document_inspector.querySelector("[name=title]").onchange = save;
         fh_document_inspector.querySelector("[name=aspectratio]").oninput = function() {
             game.gameElement.dataset.aspectratio = this.value;
             game.onresize();
         }
+        fh_document_inspector.querySelector("[name=aspectratio]").onchange = save;
         for (let textarea of editorInspector.querySelectorAll("textarea")) {
             textarea.addEventListener("input", function() {
                 this.style.height = "";
@@ -1860,6 +1903,16 @@ class EditorGame extends Game {
                 })
                 e.preventDefault();
             }
+
+            else if (
+                metaKey && e.code === "KeyY" ||
+                metaKey && shiftKey && e.code === "KeyZ"
+            ) {
+                redo();
+            }
+            else if (metaKey && e.code === "KeyZ") {
+                undo();
+            }
         })
         document.addEventListener("keyup", e => {
             if (e.key === "Shift")
@@ -1886,8 +1939,9 @@ class EditorGame extends Game {
         window.addEventListener("load", () => {
             openElementInspector();
         }, { once: true });
-        game.onresize();
         reorderPreviews();
+        history = [];
+        save();
     }
 
     initGameElement(gameElement) {
