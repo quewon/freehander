@@ -14,26 +14,48 @@
         <div style="width: 250px; overflow: scroll; border-right: 1px dotted gray; flex-shrink: 0;">
             <div class="fh-slides-container"></div>
         </div>
-        <div class="fh-editor-main" style="display: flex; flex-direction: column; flex-grow: 1;">
+        <div class="fh-editor-main">
             <div class="fh-toolbar">
-                <button type="button" name="add_slide"><b>+</b><br>add slide</button>
-                <button type="button" name="play"><b>>></b><br>play</button>
+                <button type="button" id="fh_add_slide"><b>+</b><br>add slide</button>
+                <button type="button" id="fh_play"><b>>></b><br>play</button>
                 <div style="flex-grow: 1;"></div>
-                <button type="button" name="select_mode" class="selected"><b>^</b><br>select</button>
-                <button type="button" name="text_mode"><b>Aa</b><br>text</button>
-                <button type="button" name="doodle_mode"><b>/</b><br>doodle</button>
+                <button type="button" id="fh_select_mode" class="selected"><b>^</b><br>select</button>
+                <button type="button" id="fh_text_mode"><b>Aa</b><br>text</button>
+                <button type="button" id="fh_doodle_mode"><b>/</b><br>doodle</button>
+                    <div id="fh_doodle_tooltip" class="fh-inputs hidden">
+                        <table border="0">
+                            <tr>
+                                <td>fill</td>
+                                <td><input name="fill_picker" type="color" alpha></td>
+                                <td><input name="fill" type="text"></td>
+                            </tr>
+                            <tr>
+                                <td>stroke</td>
+                                <td><input name="stroke_picker" type="color" alpha></td>
+                                <td><input name="stroke" type="text"></td>
+                            </tr>
+                            <tr>
+                                <td>
+                                    stoke width
+                                </td>
+                                <td colspan="2">
+                                    <input name="stroke-width" type="number" min="1">
+                                </td>
+                            </tr>
+                        </table>
+                    </div>
                 <div style="flex-grow: 1;"></div>
-                <button type="button" class="inspector" name="inspect">element</button>
-                <button type="button" class="inspector" name="document">game</button>
-                <button type="button" class="inspector" name="media">media</button>
-                <input style="display: none;" type="file" webkitdirectory directory multiple name="media_input">
+                <button type="button" class="inspector" id="fh_inspect_element">element</button>
+                <button type="button" class="inspector" id="fh_inspect_document">game</button>
+                <button type="button" class="inspector" id="fh_media">media</button>
+                <input style="display: none;" type="file" webkitdirectory directory multiple id="fh_media_input">
             </div>
-            <div style="display: flex; flex-grow: 1; overflow: hidden;">
+            <div class="fh-editor-aside">
                 <div class="fh-game-container">
                     <div class="fh-game"></div>
-                    <div class="fh-editor-overlay"></div>
+                    <div class="fh-editor-overlay fh-inputs"></div>
                 </div>
-                <div class="fh-inspector"></div>
+                <div class="fh-inspector fh-inputs"></div>
             </div>
         </div>
 
@@ -50,7 +72,7 @@
             border-radius: 50%;
         " onclick="document.getElementById('help-menu').showModal()">?</button>
 
-        <dialog id="help-menu" style="
+        <dialog id="help-menu" closedby="any" style="
             max-width: 30em;
             font-family: var(--editor-font);
         ">
@@ -62,25 +84,6 @@
             </p>
             <p style="text-align: center">
                 <button type="button" onclick="document.getElementById('help-menu').close()">close</button>
-            </p>
-        </dialog>
-
-        <dialog id="doodle-tooltip">
-            <p>
-                <label for="stroke">stroke?</label>
-                <input type="checkbox" value="true">
-            </p>
-            <p>
-                <label for="stroke-color">stroke color</label>
-                <input type="text" value="black">
-            </p>
-            <p>
-                <label for="fill">fill?</label>
-                <input type="checkbox" value="false">
-            </p>
-            <p>
-                <label for="fill-color">fill color</label>
-                <input type="text" value="white">
             </p>
         </dialog>
     </div>

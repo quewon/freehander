@@ -9,6 +9,48 @@ var mediaFolder;
 var openElements = {};
 var preventNextBlurcall = false;
 
+var doodleSettings = {
+    fill: await get('fill') || "none",
+    stroke: await get('stroke') || "black",
+    strokeWidth: await get('stroke-width') || 1
+}
+fh_doodle_tooltip.querySelector("[name=fill]").value = 
+fh_doodle_tooltip.querySelector("[name=fill_picker]").value = doodleSettings.fill;
+fh_doodle_tooltip.querySelector("[name=fill]").oninput = 
+fh_doodle_tooltip.querySelector("[name=fill_picker]").oninput = function() {
+    var value = this.value.trim() === "" ? "none" : this.value;
+    set('fill', value);
+    doodleSettings.fill = value;
+    fh_doodle_tooltip.querySelector("[name=fill]").value = value;
+    fh_doodle_tooltip.querySelector("[name=fill_picker]").value = value;
+};
+fh_doodle_tooltip.querySelector("[name=fill]").onchange = 
+fh_doodle_tooltip.querySelector("[name=fill_picker]").onchange = function() {
+    if (this.value.trim() === "") this.value = "none";
+};
+fh_doodle_tooltip.querySelector("[name=stroke]").value = 
+fh_doodle_tooltip.querySelector("[name=stroke_picker]").value = doodleSettings.stroke;
+fh_doodle_tooltip.querySelector("[name=stroke]").oninput = 
+fh_doodle_tooltip.querySelector("[name=stroke_picker]").oninput = function() {
+    var value = this.value.trim() === "" ? "none" : this.value;
+    set('stroke', value);
+    doodleSettings.stroke = value;
+    fh_doodle_tooltip.querySelector("[name=stroke]").value = value;
+    fh_doodle_tooltip.querySelector("[name=stroke_picker]").value = value;
+};
+fh_doodle_tooltip.querySelector("[name=stroke]").onchange = 
+fh_doodle_tooltip.querySelector("[name=stroke_picker]").onchange = function() {
+    if (this.value.trim() === "") this.value = "none";
+}
+fh_doodle_tooltip.querySelector("[name=stroke-width]").value = doodleSettings.strokeWidth;
+fh_doodle_tooltip.querySelector("[name=stroke-width]").oninput = function() {
+    set('stroke-width', Math.max(this.value, 1));
+    doodleSettings.strokeWidth = Math.max(this.value, 1);
+};
+fh_doodle_tooltip.querySelector("[name=stroke-width]").onchange = function() {
+    if (this.value < 1) this.value = 1;
+};
+
 function isHTML(string) {
     const fragment = document.createRange().createContextualFragment(string);
     fragment.querySelectorAll('*').forEach(el => el.parentNode.removeChild(el));
@@ -46,19 +88,23 @@ class Editor extends Game {
             slidesContainer.classList.add("focused");
         }
 
-        document.querySelector("[name=add_slide]").onclick = () => this.addSlide();
-        document.querySelector("[name=select_mode]").onclick = () => this.switchMode("select");
-        document.querySelector("[name=text_mode]").onclick = () => this.switchMode("text");
-        document.querySelector("[name=doodle_mode]").onclick = () => this.switchMode("doodle");
-        document.querySelector("[name=inspect]").onclick = () => this.openElementInspector();
-        document.querySelector("[name=document").onclick = () => this.openDocumentInspector();
-        const mediaInput = document.querySelector("input[name=media_input]");
-        mediaInput.onchange = () => {
-            this.createMediaFolder(mediaInput.files);
-            this.openMediaInspector();
-            mediaInput.value = "";
+        fh_add_slide.onclick = () => this.addSlide();
+        fh_select_mode.onclick = () => this.switchMode("select");
+        fh_text_mode.onclick = () => this.switchMode("text");
+        fh_doodle_mode.onclick = () => {
+            var hidden = fh_doodle_tooltip.classList.contains("hidden");
+            this.switchMode("doodle");
+            if (hidden)
+                fh_doodle_tooltip.classList.remove("hidden");
         }
-        document.querySelector("[name=media]").onclick = async () => {
+        fh_inspect_element.onclick = () => this.openElementInspector();
+        fh_inspect_document.onclick = () => this.openDocumentInspector();
+        fh_media_input.onchange = () => {
+            this.createMediaFolder(fh_media_input.files);
+            this.openMediaInspector();
+            fh_media_input.value = "";
+        }
+        fh_media.onclick = async () => {
             if (!mediaFolder) {
                 if ('showDirectoryPicker' in self) {
                     var dirHandle = await get('media');
@@ -87,13 +133,13 @@ class Editor extends Game {
                     this.createMediaFolder(files);
                     this.openMediaInspector();
                 } else {
-                    mediaInput.click();
+                    fh_media_input.click();
                 }
             } else {
                 this.openMediaInspector();
             }
         };
-        document.querySelector("[name=play]").onclick = () => this.playGame();
+        fh_play.onclick = () => this.playGame();
 
         document.addEventListener("keydown", e => {
             if (e.target.tagName === "INPUT" || e.target.tagName === "TEXTAREA") {
@@ -348,7 +394,7 @@ class Editor extends Game {
             canvasRect[0] / gameRect.width * 100,
             canvasRect[1] / gameRect.height * 100,
             1, 1,
-            `<svg width="0" height="0" viewBox="0 0 0 0"><path d="" /></svg>`
+            `<svg width="0" height="0" viewBox="0 0 0 0"><path fill="${doodleSettings.fill}" stroke="${doodleSettings.stroke}" stroke-width="${doodleSettings.strokeWidth}" d="" /></svg>`
         )
         const svg = element.querySelector("svg");
         const path = svg.firstElementChild;
@@ -1155,7 +1201,7 @@ class Editor extends Game {
                             targetInset = Math.min(maxInset, targetInset);
                         }
                         container.dataset.inset = targetInset;
-                        this.updateSlidePreviewScale(container.querySelector(".fh-slide-preview"));
+                        this.updateSlidePreviewScale(container.querySelector(".fh-slide-preview-bg"));
                     }
                 }
                 var muEvent = () => {
@@ -1180,9 +1226,13 @@ class Editor extends Game {
             document.addEventListener("mouseup", mouseupEvent);
         }
 
+        const previewBg = document.createElement("div");
+        previewBg.className = "fh-slide-preview-bg";
+        container.appendChild(previewBg);
+
         const preview = document.createElement("div");
         preview.className = "fh-slide-preview";
-        container.appendChild(preview);
+        previewBg.appendChild(preview);
 
         const label = document.createElement("label");
         label.textContent = name;
@@ -1199,7 +1249,7 @@ class Editor extends Game {
         this.slidesContainer.appendChild(container);
         this.updateSlidePreview(slide);
         if (this.cachedGameRect)
-            this.updateSlidePreviewScale(preview);
+            this.updateSlidePreviewScale(previewBg);
 
         return container;
     }
@@ -1238,10 +1288,7 @@ class Editor extends Game {
     updateSlidePreview(slide) {
         slide = slide || this.currentSlide;
         var preview = this.findSlidePreview(slide).querySelector(".fh-slide-preview");
-        preview.innerHTML = "";
-        for (let child of slide.children) {
-            preview.appendChild(child.cloneNode(true));
-        }
+        preview.innerHTML = slide.innerHTML;
     }
     
     updateSlidePreviewScale(preview) {
@@ -1294,16 +1341,20 @@ class Editor extends Game {
             for (let slide of this.gameElement.querySelectorAll(".fh-slide")) {
                 this.updateSlidePreview(slide);
             }
-            for (let preview of this.slidesContainer.querySelectorAll(".fh-slide-preview")) {
+            for (let preview of this.slidesContainer.querySelectorAll(".fh-slide-preview-bg")) {
                 this.updateSlidePreviewScale(preview);
             }
             this.goto(this.currentSlide);
         }
+        var tooltipPosition = fh_doodle_mode.getBoundingClientRect();
+        fh_doodle_tooltip.style.left = tooltipPosition.left + "px";
+        fh_doodle_tooltip.style.top = tooltipPosition.bottom + "px";
     }
 
     switchMode(modename) {
         editMode = modename || "select";
         this.editorOverlay.style.cursor = "default";
+        fh_doodle_tooltip.classList.add("hidden");
         if (editMode === "text") {
             this.editorOverlay.style.cursor = "crosshair";
         } else if (editMode === "doodle") {
@@ -1315,7 +1366,7 @@ class Editor extends Game {
         const toolbar = document.querySelector(".fh-toolbar");
         if (toolbar.querySelector(".selected"))
             toolbar.querySelector(".selected").classList.remove("selected");
-        toolbar.querySelector(`[name=${editMode}_mode]`).classList.add("selected");
+        document.getElementById(`fh_${editMode}_mode`).classList.add("selected");
     }
 
     addSlide() {
@@ -1385,7 +1436,7 @@ class Editor extends Game {
                 data.preview.dataset.path = this.getPath(data.element);
             }
 
-            if (document.body.querySelector(".fh-toolbar .selected[name=inspect]")) {
+            if (fh_inspect_element.classList.contains("selected")) {
                 this.editorInspector.querySelector("[name=rename]").value = name;
             }
         } else if (element.classList.contains("fh-element")) {
@@ -1401,7 +1452,7 @@ class Editor extends Game {
 
             if (element.parentElement === this.currentSlide) {
                 const data = openElements[element.getAttribute("name")];
-                if (data.clickzone.classList.contains("selected") && document.body.querySelector(".fh-toolbar .selected[name=inspect]"))
+                if (data.clickzone.classList.contains("selected") && fh_inspect_element.classList.contains("selected"))
                     this.editorInspector.querySelector("[name=rename]").value = name;
             }
         }
@@ -1531,7 +1582,7 @@ class Editor extends Game {
                 preview.dataset.path = this.getPath(slide);
             }
 
-            this.updateSlidePreviewScale(preview.querySelector(".fh-slide-preview"));
+            this.updateSlidePreviewScale(preview.querySelector(".fh-slide-preview-bg"));
         }
         for (let preview of this.slidesContainer.children) {
             preview.querySelector("button").style.display = "none";
@@ -1588,7 +1639,7 @@ class Editor extends Game {
             const data = openElements[element.getAttribute("name")];
             data.clickzone.classList.remove("selected");
             data.handle.svg.style.display = "none";
-            if (document.body.querySelector(".fh-toolbar .selected[name=inspect]"))
+            if (fh_inspect_element.classList.contains("selected"))
                 this.openElementInspector();
         }
     }
@@ -1598,7 +1649,7 @@ class Editor extends Game {
             const data = openElements[element.getAttribute("name")];
             data.clickzone.classList.add("selected");
             data.handle.svg.style.display = "block";
-            if (document.body.querySelector(".fh-toolbar .selected[name=inspect]"))
+            if (fh_inspect_element.classList.contains("selected"))
                 this.openElementInspector(element);
         }
     }
@@ -1664,6 +1715,7 @@ class Editor extends Game {
                 htmlInput.value = element.innerHTML;
                 if (htmlInput.value.trim() === "") {
                     preventNextBlurcall = true;
+                    console.log("empty element deleted.");
                     this.deleteElement(element);
                 }
             }
@@ -1701,7 +1753,7 @@ class Editor extends Game {
             var styleElement = element.querySelector(":scope > style");
             if (!styleElement) {
                 styleElement = document.createElement("style");
-                styleElement.textContent = "@scope {\n  svg {\n    stroke: black;\n    fill: none;\n  }\n}";
+                styleElement.textContent = "@scope {\n  :scope {\n    background: transparent;\n  }\n}";
                 element.prepend(styleElement);
             }
             cssInput.value = styleElement.textContent;
@@ -1749,7 +1801,7 @@ class Editor extends Game {
         const selectedInspector = document.body.querySelector(".fh-toolbar .inspector.selected");
         if (selectedInspector)
             selectedInspector.classList.remove("selected");
-        document.body.querySelector(".fh-toolbar [name=inspect]").classList.add("selected");
+        fh_inspect_element.classList.add("selected");
     }
 
     openDocumentInspector() {
@@ -1789,7 +1841,7 @@ class Editor extends Game {
         const selectedInspector = document.body.querySelector(".fh-toolbar .inspector.selected");
         if (selectedInspector)
             selectedInspector.classList.remove("selected");
-        document.body.querySelector(".fh-toolbar [name=document]").classList.add("selected");
+        fh_inspect_document.classList.add("selected");
     }
 
     createMediaFolder(files) {
@@ -1922,7 +1974,7 @@ class Editor extends Game {
         reloadButton.innerHTML = "<b>⟳</b><br>(re)load";
         reloadButton.onclick = () => {
             mediaFolder = null;
-            document.querySelector(".inspector[name=media]").click();
+            fh_media.click();
         }
         buttons.appendChild(reloadButton);
 
@@ -1935,7 +1987,7 @@ class Editor extends Game {
             loadButton.onclick = () => {
                 mediaFolder = null;
                 del('media');
-                document.querySelector(".inspector[name=media]").click();
+                fh_media.click();
             }
             buttons.appendChild(loadButton);
         } else {
@@ -1948,7 +2000,7 @@ class Editor extends Game {
         const selectedInspector = document.body.querySelector(".fh-toolbar .inspector.selected");
         if (selectedInspector)
             selectedInspector.classList.remove("selected");
-        document.body.querySelector(".fh-toolbar [name=media]").classList.add("selected");
+        fh_media.classList.add("selected");
     }
 
     goto(path) {
@@ -1970,7 +2022,7 @@ class Editor extends Game {
                 this.openElement(element);
             }
         }
-        if (document.body.querySelector(".fh-toolbar .selected[name=inspect]"))
+        if (fh_inspect_element.classList.contains("selected"))
             this.openElementInspector();
     }
 
