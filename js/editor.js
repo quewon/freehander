@@ -7,6 +7,7 @@ var shiftKey = false;
 var metaKey = false;
 var mediaFolder;
 var openElements = {};
+var preventNextBlurcall = false;
 
 function isHTML(string) {
     const fragment = document.createRange().createContextualFragment(string);
@@ -1613,10 +1614,13 @@ class Editor extends Game {
         }
         const name = element.getAttribute("name");
 
-        for (let input of this.editorInspector.querySelectorAll("input, textarea")) {
-            if (input.onblur)
-                input.onblur();
+        if (!preventNextBlurcall) {
+            for (let input of this.editorInspector.querySelectorAll("input, textarea")) {
+                if (input.onblur)
+                    input.onblur();
+            }
         }
+        preventNextBlurcall = false;
 
         if (element.classList.contains("fh-element")) {
             this.editorInspector.innerHTML = `
@@ -1650,9 +1654,16 @@ class Editor extends Game {
 
             htmlInput.addEventListener("input", () => {
                 this.setElementHTML(element, htmlInput.value);
+                if (element.innerHTML.trim() === "") {
+                    htmlInput.style.borderColor = "red";
+                } else {
+                    htmlInput.style.borderColor = "";
+                }
             })
             htmlInput.onblur = () => {
+                htmlInput.value = element.innerHTML;
                 if (htmlInput.value.trim() === "") {
+                    preventNextBlurcall = true;
                     this.deleteElement(element);
                 }
             }
