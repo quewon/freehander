@@ -86,6 +86,9 @@ function selectionMousedown(e) {
     document.addEventListener("mouseup", mouseupEvent);
 }
 function doodlemodeMousedown(e) {
+    const tooltipShown = !fh_doodle_tooltip.classList.contains("hidden");
+    fh_doodle_tooltip.classList.add("hidden");
+
     const padding = 5;
     const gameRect = game.cachedGameRect;
     var canvasRect = [e.pageX - gameRect.left, e.pageY - gameRect.top, 0, 0];
@@ -137,6 +140,8 @@ function doodlemodeMousedown(e) {
         path.setAttribute("d", d);
     }
     const mouseupEvent = () => {
+        if (tooltipShown)
+            fh_doodle_tooltip.classList.remove("hidden");
         if (canvasRect[2] === 0 && canvasRect[3] === 0) {
             deleteElement(element);
             return;
@@ -1989,6 +1994,9 @@ class EditorGame extends Game {
                 var value = this.value.trim() === "" ? "none" : this.value;
                 set(setting, value); doodleSettings[setting] = value;
                 picker.value = standardize_color(value);
+            }
+            text.onchange = function() {
+                this.value = this.value.trim() === "" ? "none" : this.value;
             }
             picker.oninput = function() {
                 set(setting, this.value); doodleSettings[setting] = this.value;
