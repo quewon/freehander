@@ -1996,6 +1996,11 @@ class EditorGame extends Game {
                 undo();
                 e.preventDefault();
             }
+            else if (metaKey && e.code === "KeyA") {
+                for (let name in openElements) {
+                    selectElement(openElements[name].element);
+                }
+            }
         })
         document.addEventListener("keyup", e => {
             if (e.key === "Shift")
