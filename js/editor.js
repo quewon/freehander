@@ -58,11 +58,10 @@ class Editor extends Game {
             mediaInput.value = "";
         }
         document.querySelector("[name=media]").onclick = async () => {
-            console.log(mediaFolder);
             if (!mediaFolder) {
                 if ('showDirectoryPicker' in self) {
                     var dirHandle = await get('media');
-                    if (!dirHandle) {
+                    if (!dirHandle || await dirHandle.requestPermission() !== 'granted') {
                         dirHandle = await window.showDirectoryPicker();
                         await set('media', dirHandle);
                     }
@@ -73,7 +72,6 @@ class Editor extends Game {
                             const file = await entry.getFile();
                             if (file !== null) {
                                 file.relativePath = dirpath + entry.name;
-                                console.log(file.relativePath);
                                 yield file;
                             }
                         } else if (entry.kind === "directory") {
@@ -1912,7 +1910,6 @@ class Editor extends Game {
         reloadButton.type = "button";
         reloadButton.innerHTML = "<b>⟳</b><br>(re)load";
         reloadButton.onclick = () => {
-            console.log(mediaFolder);
             mediaFolder = null;
             document.querySelector(".inspector[name=media]").click();
         }
