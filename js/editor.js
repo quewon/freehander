@@ -1,5 +1,6 @@
 import { Game } from "./game.js";
 import { loadAssetFolder } from "./folder.js";
+import { get, set, del } from './idb-keyval.js';
 
 var editMode = "select";
 var shiftKey = false;
@@ -57,8 +58,38 @@ class Editor extends Game {
             mediaInput.value = "";
         }
         document.querySelector("[name=media]").onclick = async () => {
+            console.log(mediaFolder);
             if (!mediaFolder) {
-                mediaInput.click();
+                if ('showDirectoryPicker' in self) {
+                    var dirHandle = await get('media');
+                    if (!dirHandle) {
+                        dirHandle = await window.showDirectoryPicker();
+                        await set('media', dirHandle);
+                    }
+                    var files = [];
+                    async function* getFilesRecursively(entry, dirpath) {
+                        dirpath = dirpath || "";
+                        if (entry.kind === "file") {
+                            const file = await entry.getFile();
+                            if (file !== null) {
+                                file.relativePath = dirpath + entry.name;
+                                console.log(file.relativePath);
+                                yield file;
+                            }
+                        } else if (entry.kind === "directory") {
+                            for await (const handle of entry.values()) {
+                                yield* getFilesRecursively(handle, dirpath + entry.name + "/");
+                            }
+                        }
+                    }
+                    for await (let file of getFilesRecursively(dirHandle)) {
+                        files.push(file);
+                    }
+                    this.createMediaFolder(files);
+                    this.openMediaInspector();
+                } else {
+                    mediaInput.click();
+                }
             } else {
                 this.openMediaInspector();
             }
@@ -72,10 +103,17 @@ class Editor extends Game {
 
             if (e.key === "Shift")
                 shiftKey = true;
-            if (e.key === "Meta" || e.key === "Ctrl")
+            else if (e.key === "Meta" || e.key === "Ctrl")
                 metaKey = true;
 
-            if (e.key === "Delete" || e.key === "Backspace") {
+            else if (e.key === "1")
+                this.switchMode("select")
+            else if (e.key === "2")
+                this.switchMode("text")
+            else if (e.key === "3")
+                this.switchMode("doodle")
+
+            else if (e.key === "Delete" || e.key === "Backspace") {
                 if (this.slidesContainer.classList.contains("focused")) {
                     for (let preview of this.slidesContainer.querySelectorAll(".fh-slide-preview-container.selected")) {
                         this.deleteElement(this.getElementAtPath(preview.dataset.path));
@@ -1846,14 +1884,42 @@ class Editor extends Game {
         this.editorInspector.innerHTML = "";
         this.editorInspector.appendChild(mediaFolder);
 
+        var buttons = document.createElement("div");
+        buttons.style.display = "flex";
+        buttons.style.gap = "1.5em";
+        buttons.style.borderTop = "1px dotted gray";
+        buttons.style.marginTop = "2em";
+        buttons.style.paddingTop = "1em";
+        this.editorInspector.appendChild(buttons);
+
         var reloadButton = document.createElement("button");
         reloadButton.type = "button";
-        reloadButton.textContent = "(re)load folder";
+        reloadButton.innerHTML = "<b>⟳</b><br>(re)load";
         reloadButton.onclick = () => {
+            console.log(mediaFolder);
             mediaFolder = null;
             document.querySelector(".inspector[name=media]").click();
         }
-        this.editorInspector.appendChild(reloadButton);
+        buttons.appendChild(reloadButton);
+
+        if ('showDirectoryPicker' in self) {
+            reloadButton.innerHTML = "<b>⟳</b><br>reload";
+
+            var loadButton = document.createElement("button");
+            loadButton.type = "button";
+            loadButton.innerHTML = "<b>&#8801;</b><br>load new";
+            loadButton.onclick = () => {
+                mediaFolder = null;
+                del('media');
+                document.querySelector(".inspector[name=media]").click();
+            }
+            buttons.appendChild(loadButton);
+        } else {
+            var details = document.createElement("details");
+            details.style.marginTop = "1em";
+            details.innerHTML = `<summary style="color: gray">fallback note!</summary><p>this media folder is nicer to use on a browser that enables <a href="https://developer.mozilla.org/en-US/docs/Web/API/Window/showDirectoryPicker#browser_compatibility" target="_blank">directory access through the File System API</a>. without it, this website can't remember your last loaded media folder and is a bit slower to re/load the directory.</p>`;
+            this.editorInspector.appendChild(details);
+        }
 
         const selectedInspector = document.body.querySelector(".fh-toolbar .inspector.selected");
         if (selectedInspector)

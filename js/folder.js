@@ -30,12 +30,12 @@ function getFolderStructure(files) {
     files = [...files];
     const structure = {};
     files.sort((a, b) => {
-        const apath = (a.webkitRelativePath || a.path).toLowerCase();
-        const bpath = (b.webkitRelativePath || b.path).toLowerCase();
+        const apath = (a.relativePath || a.webkitRelativePath || a.path).toLowerCase();
+        const bpath = (b.relativePath || b.webkitRelativePath || b.path).toLowerCase();
         return apath.localeCompare(bpath)
     });
     for (let file of files) {
-        const pathParts = (file.webkitRelativePath || file.path).split('/');
+        const pathParts = (file.relativePath || file.webkitRelativePath || file.path).split('/');
         let current = structure;
         for (let i = 0; i < pathParts.length - 1; i++) {
             const dirName = pathParts[i];
@@ -51,7 +51,7 @@ function getFolderStructure(files) {
                 kind: "file",
                 type: kind,
                 format: kind === "text" ? "text/plain" : file.type,
-                path: file.webkitRelativePath || file.path,
+                path: file.relativePath || file.webkitRelativePath || file.path,
                 file: file
             }
         }
