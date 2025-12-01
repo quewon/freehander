@@ -6,8 +6,7 @@
     <title>freehander</title>
     <link rel="stylesheet" href="css/game.css">
     <link rel="stylesheet" href="css/editor.css">
-    <script src="js/jszip.min.js" defer></script>
-    <script src="js/FileSaver.min.js" defer></script>
+    <script src="js/editor/lib/FileSaver.min.js" defer></script>
 </head>
 <body>
     <div class="fh-editor">
@@ -45,9 +44,9 @@
                         </table>
                     </div>
                 <div style="flex-grow: 1;"></div>
-                <button type="button" class="inspector" id="fh_inspect_element">element</button>
-                <button type="button" class="inspector" id="fh_inspect_document">game</button>
-                <button type="button" class="inspector" id="fh_media">media</button>
+                <button type="button" class="inspector_button" id="fh_inspect_element">element</button>
+                <button type="button" class="inspector_button" id="fh_inspect_document">game</button>
+                <button type="button" class="inspector_button" id="fh_media">media</button>
                 <input style="display: none;" type="file" webkitdirectory directory multiple id="fh_media_input">
             </div>
             <div class="fh-editor-aside">
@@ -55,7 +54,67 @@
                     <div class="fh-game"></div>
                     <div class="fh-editor-overlay fh-inputs"></div>
                 </div>
-                <div class="fh-inspector fh-inputs"></div>
+                <div class="fh-inspector fh-inputs">
+                    <div id="fh_document_inspector" class="hidden">
+                        <b>GAME</b><br>
+                        <br>
+                        <label>title</label><br>
+                        <input type="text" name="title" /><br>
+                        <br>
+                        <label>aspect ratio</label><br>
+                        <input type="number" step="0.1" name="aspectratio" /><br>
+                        <br>
+                        <div style="display: flex; gap: 1.5em;">
+                            <button type="button" name="load"><b><</b><br>load</button>
+                            <button type="button" name="save"><b>v</b><br>save</button>
+                            <button type="button" name="export"><b>[]</b><br>export</button>
+                        </div>
+                        <input style="display: none;" type="file" accept="text/html" name="html_input">
+                    </div>
+                    <div id="fh_element_inspector" name="element" class="hidden">
+                        <b>ELEMENT</b><br>
+                        <br>
+                        <label>name</label><br>
+                        <input type="text" name="rename" /><br>
+                        <br>
+                        <label>HTML</label><br>
+                        <textarea name="html"></textarea><br>
+                        <br>
+                        <label>show script</label><br>
+                        <textarea name="onshow"></textarea><br>
+                        <br>
+                        <label>click script</label><br>
+                        <textarea name="onclick"></textarea><br>
+                        <br>
+                    </div>
+                    <div id="fh_slide_inspector" class="hidden">
+                        <b>SLIDE</b><br>
+                        <br>
+                        <label>name</label><br>
+                        <input type="text" name="rename" /><br>
+                        <br>
+                        <label>enter script</label><br>
+                        <textarea name="onenter"></textarea><br>
+                        <br>
+                        <label>exit script</label><br>
+                        <textarea name="onexit"></textarea><br>
+                        <br>
+                        <label>CSS</label><br>
+                        <textarea name="css"></textarea><br>
+                        <br>
+                    </div>
+                    <div id="fh_media_inspector" class="hidden">
+                        <div id="fh_folder_container"></div>
+                        <div style="display: flex; gap: 1.5em; border-top: 1px dotted gray; margin-top: 2em; padding-top: 1em;">
+                            <button type="button" id="fh_media_reload_button"><b>⟳</b><br>reload</button>
+                            <button type="button" id="fh_media_load_button"><b>&#8801;</b><br>load new</button>
+                        </div>
+                        <details style="margin-top: 1em" id="fh_media_fallback_message">
+                            <summary style="color: gray">fallback note!</summary>
+                            <p>this media folder is nicer to use on a browser that enables <a href="https://developer.mozilla.org/en-US/docs/Web/API/Window/showDirectoryPicker#browser_compatibility" target="_blank">directory access through the File System API</a>. without it, this website can't remember your last loaded media folder and is a bit slower to re/load the directory.</p>
+                        </details>
+                    </div>
+                </div>
             </div>
         </div>
 
@@ -89,7 +148,7 @@
     </div>
 </body>
 <script type="module">
-    import { Editor } from "./js/editor.js";
-    new Editor();
+    import { EditorGame } from "./js/editor/editor.js";
+    new EditorGame();
 </script>
 </html>
