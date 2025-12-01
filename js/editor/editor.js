@@ -200,28 +200,16 @@ function textmodeMousedown(e) {
             y = (mousedownPosition[1] - rect.top) / rect.height * 100;
         }
         const element = createElement(x, y, w, h);
+        if (!sizeSet) element.dataset.fithtml = "true";
+        box.remove();
+        selectElement(element);
 
-        const textarea = document.createElement("textarea");
-        textarea.setAttribute("autocomplete", "off");
-        textarea.setAttribute("autocorrect", "off");
-        textarea.setAttribute("autocapitalize", "off");
-        textarea.setAttribute("spellcheck", "off");
-        textarea.style.fontFamily = "var(--editor-font)";
-        textarea.style.backgroundColor = "white";
-        textarea.style.position = "absolute";
-        textarea.style.transform = "translate(-50%, -50%)";
-        const c = getElementCenter(element);
-        textarea.style.left = c[0] + "%";
-        textarea.style.top = c[1] + "%";
-        textarea.value = element.innerHTML;
-        textarea.oninput = () => {
-            textarea.style.height = "";
-            textarea.style.height = (textarea.scrollHeight + 2) + "px";
-            setElementHTML(element, textarea.value);
+        openElementInspector(element);
+        var htmlInput = fh_element_inspector.querySelector("[name=html]");
+        htmlInput.style.borderColor = "red";
+        htmlInput.oninput = () => {
+            setElementHTML(element, htmlInput.value);
             if (!sizeSet) {
-                const c = getElementCenter(element);
-                textarea.style.left = c[0] + "%";
-                textarea.style.top = c[1] + "%";
                 const x1 = x;
                 const y1 = y;
                 const x2 = x + (element.clientWidth / game.cachedGameRect.width * 100);
@@ -233,26 +221,24 @@ function textmodeMousedown(e) {
                     [x1, y2]
                 ]);
             }
-        }
-        editorOverlay.appendChild(textarea);
-        setTimeout(() => {
-            textarea.focus();
-            textarea.onblur = () => {
-                textarea.remove();
-                if (sizeSet)
-                    box.remove();
-                else
-                    element.dataset.fithtml = "true";
-                if (textarea.value.trim() === "") {
-                    deleteElement(element);
-                } else {
-                    save();
-                }
+            if (element.innerHTML.trim() === "") {
+                htmlInput.style.borderColor = "red";
+            } else {
+                htmlInput.style.borderColor = "";
             }
-        }, 1);
+        }
+        htmlInput.onblur = () => {
+            if (element.innerHTML.trim() === "") {
+                console.log("empty element deleted.");
+                deleteElement(element);
+            } else {
+                htmlInput.onblur = null;
+                openElementInspector(element);
+            }
+        }
+        htmlInput.focus();
 
         switchMode();
-        if (!sizeSet) box.remove();
         document.removeEventListener("mousemove", mousemoveEvent);
         document.removeEventListener("mouseup", mouseupEvent);
     }
@@ -286,6 +272,7 @@ function redo() {
     }
 }
 function restoreState(state) {
+    document.querySelector(":focus")?.blur();
     document.querySelector(".fh-game").innerHTML = state;
 
     Game.prototype.init.call(game, document.querySelector(".fh-game"));
@@ -873,6 +860,13 @@ function openElementInspector(element) {
         fh_element_inspector.querySelector("[name=onclick]").onchange = save;
 
         const htmlInput = fh_element_inspector.querySelector("[name=html]");
+        htmlInput.onkeydown = e => {
+            if (shiftKey && e.key === 'Enter') {
+                element.innerHTML += "<br>";
+                htmlInput.value += "<br>";
+            }
+        }
+        htmlInput.style.borderColor = "";
         htmlInput.oninput = () => {
             setElementHTML(element, htmlInput.value);
             if (element.innerHTML.trim() === "") {
@@ -1870,14 +1864,14 @@ class EditorGame extends Game {
         };
 
         document.addEventListener("keydown", e => {
-            if (e.target.tagName === "INPUT" || e.target.tagName === "TEXTAREA") {
-                return;
-            }
-
             if (e.key === "Shift")
                 shiftKey = true;
             else if (e.key === "Meta" || e.key === "Ctrl")
                 metaKey = true;
+
+            if (e.target.tagName === "INPUT" || e.target.tagName === "TEXTAREA") {
+                return;
+            }
 
             else if (e.key === "1")
                 switchMode("select")
@@ -1996,9 +1990,11 @@ class EditorGame extends Game {
                 metaKey && shiftKey && e.code === "KeyZ"
             ) {
                 redo();
+                e.preventDefault();
             }
             else if (metaKey && e.code === "KeyZ") {
                 undo();
+                e.preventDefault();
             }
         })
         document.addEventListener("keyup", e => {
