@@ -14,33 +14,20 @@ var doodleSettings = {
     stroke: await get('stroke') || "black",
     strokeWidth: await get('stroke-width') || 1
 }
-fh_doodle_tooltip.querySelector("[name=fill]").value = 
-fh_doodle_tooltip.querySelector("[name=fill_picker]").value = doodleSettings.fill;
-fh_doodle_tooltip.querySelector("[name=fill]").oninput = 
-fh_doodle_tooltip.querySelector("[name=fill_picker]").oninput = function() {
-    var value = this.value.trim() === "" ? "none" : this.value;
-    set('fill', value);
-    doodleSettings.fill = value;
-    fh_doodle_tooltip.querySelector("[name=fill]").value = value;
-    fh_doodle_tooltip.querySelector("[name=fill_picker]").value = value;
-};
-fh_doodle_tooltip.querySelector("[name=fill]").onchange = 
-fh_doodle_tooltip.querySelector("[name=fill_picker]").onchange = function() {
-    if (this.value.trim() === "") this.value = "none";
-};
-fh_doodle_tooltip.querySelector("[name=stroke]").value = 
-fh_doodle_tooltip.querySelector("[name=stroke_picker]").value = doodleSettings.stroke;
-fh_doodle_tooltip.querySelector("[name=stroke]").oninput = 
-fh_doodle_tooltip.querySelector("[name=stroke_picker]").oninput = function() {
-    var value = this.value.trim() === "" ? "none" : this.value;
-    set('stroke', value);
-    doodleSettings.stroke = value;
-    fh_doodle_tooltip.querySelector("[name=stroke]").value = value;
-    fh_doodle_tooltip.querySelector("[name=stroke_picker]").value = value;
-};
-fh_doodle_tooltip.querySelector("[name=stroke]").onchange = 
-fh_doodle_tooltip.querySelector("[name=stroke_picker]").onchange = function() {
-    if (this.value.trim() === "") this.value = "none";
+for (const setting of ["fill", "stroke"]) {
+    const text = fh_doodle_tooltip.querySelector(`[name=${setting}]`);
+    const picker = fh_doodle_tooltip.querySelector(`[name=${setting}_picker]`);
+    text.value = picker.value = doodleSettings[setting];
+    text.oninput = function() {
+        var value = this.value.trim() === "" ? "none" : this.value;
+        set(setting, value); doodleSettings[setting] = value;
+        picker.value = standardize_color(value);
+    }
+    picker.oninput = function() {
+        set(setting, this.value); doodleSettings[setting] = this.value;
+        text.value = this.value;
+        console.log(text, text.value, this.value);
+    };
 }
 fh_doodle_tooltip.querySelector("[name=stroke-width]").value = doodleSettings.strokeWidth;
 fh_doodle_tooltip.querySelector("[name=stroke-width]").oninput = function() {
@@ -55,6 +42,13 @@ function isHTML(string) {
     const fragment = document.createRange().createContextualFragment(string);
     fragment.querySelectorAll('*').forEach(el => el.parentNode.removeChild(el));
     return !(fragment.textContent || '').trim();
+}
+
+//https://stackoverflow.com/a/47355187/30103476
+function standardize_color(str) {
+    var ctx = document.createElement("canvas").getContext("2d");
+    ctx.fillStyle = str;
+    return ctx.fillStyle;
 }
 
 class Editor extends Game {
@@ -1353,12 +1347,12 @@ class Editor extends Game {
 
     switchMode(modename) {
         editMode = modename || "select";
-        this.editorOverlay.style.cursor = "default";
         fh_doodle_tooltip.classList.add("hidden");
-        if (editMode === "text") {
+        if (editMode === "text" || editMode === "doodle")
             this.editorOverlay.style.cursor = "crosshair";
-        } else if (editMode === "doodle") {
-            this.editorOverlay.style.cursor = "crosshair";
+        else
+            this.editorOverlay.style.cursor = "default";
+        if (editMode === "doodle") {
             for (let name in openElements) {
                 this.deselectElement(openElements[name].element);
             }
