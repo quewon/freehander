@@ -239,7 +239,10 @@ function textmodeMousedown(e) {
             textarea.focus();
             textarea.onblur = () => {
                 textarea.remove();
-                if (sizeSet) box.remove();
+                if (sizeSet)
+                    box.remove();
+                else
+                    element.dataset.fithtml = "true";
                 if (textarea.value.trim() === "") {
                     deleteElement(element);
                 } else {
@@ -534,9 +537,9 @@ function getParentPreview(preview) {
 }
 function updateSlidePreview(slide) {
     slide = slide || game.currentSlide;
-    var preview = findSlidePreview(slide);
+    var preview = findSlidePreview(slide)?.querySelector(".fh-slide-preview");
     if (preview) {
-        preview.querySelector(".fh-slide-preview").innerHTML = slide.innerHTML;
+        preview.innerHTML = slide.innerHTML;
     }
 }
 function updateSlidePreviewScale(preview) {
@@ -727,6 +730,19 @@ function openElement(element) {
 }
 function setElementHTML(element, html) {
     element.innerHTML = html;
+    if (element.dataset.fithtml) {
+        var origin = getElementTopLeft(element);
+        element.removeAttribute("data-x1");
+        element.removeAttribute("data-y1");
+        element.removeAttribute("data-x2");
+        element.removeAttribute("data-y2");
+        element.removeAttribute("data-x3");
+        element.removeAttribute("data-y3");
+        element.removeAttribute("data-x4");
+        element.removeAttribute("data-y4");
+        updateElementPoints(element, createElementPointsArray(element));
+        setElementTopLeft(element, origin);
+    }
     if (element.getAttribute("name") in openElements) {
         game.updateTransform(element);
     }
@@ -877,6 +893,27 @@ function openElementInspector(element) {
             }
         }
         htmlInput.value = element.innerHTML;
+        
+        const fitCheckbox = fh_element_inspector.querySelector("[name=fit-html]");
+        fitCheckbox.checked = !!element.dataset.fithtml;
+        fitCheckbox.onchange = () => {
+            if (fitCheckbox.checked) {
+                element.dataset.fithtml = "true";
+                var center = getElementCenter(element);
+                element.removeAttribute("data-x1");
+                element.removeAttribute("data-y1");
+                element.removeAttribute("data-x2");
+                element.removeAttribute("data-y2");
+                element.removeAttribute("data-x3");
+                element.removeAttribute("data-y3");
+                element.removeAttribute("data-x4");
+                element.removeAttribute("data-y4");
+                updateElementPoints(element, createElementPointsArray(element));
+                setElementCenter(element, center);
+            } else {
+                element.removeAttribute("data-fithtml");
+            }
+        }
 
         nameInput = fh_element_inspector.querySelector("[name=rename]");
     } else {
@@ -1007,6 +1044,43 @@ function updateElementPoints(element, points) {
 
     game.updateTransform(element);
     updateSlidePreview(element.parentElement);
+}
+function getElementMinMax(element) {
+    var points;
+    if (element.parentElement === game.currentSlide) {
+        points = openElements[element.getAttribute("name")].handle.points;
+    } else {
+        points = createElementPointsArray(element);
+    }
+    var min = [Infinity, Infinity];
+    var max = [-Infinity, -Infinity];
+    for (let i=0; i<4; i++) {
+        let point = points[i];
+        min = [
+            Math.min(point[0], min[0]),
+            Math.min(point[1], min[1])
+        ]
+        max = [
+            Math.max(point[0], max[0]),
+            Math.max(point[1], max[1])
+        ]
+    }
+    return { min, max };
+}
+function getElementTopLeft(element) {
+    var mm = getElementMinMax(element);
+    return mm.min;
+}
+function setElementTopLeft(element, position) {
+    var mm = getElementMinMax(element);
+    var w = mm.max[0] - mm.min[0];
+    var h = mm.max[1] - mm.min[1];
+    updateElementPoints(element, [
+        [position[0], position[1]],
+        [position[0] + w, position[1]],
+        [position[0] + w, position[1] + h],
+        [position[0], position[1] + h]
+    ]);
 }
 function getElementCenter(element) {
     var points;
@@ -1337,6 +1411,10 @@ function createElementHandle(element) {
                     handle.points[n] = [x + edgeOffsets[1][0], y + edgeOffsets[1][1]];
                 }
                 updateElementPoints(element, handle.points);
+                if (element.dataset.fithtml) {
+                    element.removeAttribute("data-fithtml");
+                    openElementInspector(element);
+                }
             }
             const mouseupEvent = () => {
                 document.removeEventListener("mouseup", mouseupEvent);
@@ -1375,7 +1453,6 @@ function createElementHandle(element) {
                 const parentRect = svg.getBoundingClientRect();
                 const x = (e.pageX - parentRect.left) / game.cachedGameRect.width * 100;
                 const y = (e.pageY - parentRect.top) / game.cachedGameRect.height * 100;
-
                 handle.points[i] = [x, y];
                 if (shiftKey) {
                     var prev = i-1 < 0 ? 3 : i-1;
@@ -1383,8 +1460,11 @@ function createElementHandle(element) {
                     handle.points[(i%2==0 ? prev : next)][0] = handle.points[i][0];
                     handle.points[(i%2==0 ? next : prev)][1] = handle.points[i][1];
                 }
-
                 updateElementPoints(element, handle.points);
+                if (element.dataset.fithtml) {
+                    element.removeAttribute("data-fithtml");
+                    openElementInspector(element);
+                }
             }
             const mouseupEvent = () => {
                 document.removeEventListener("mouseup", mouseupEvent);
@@ -2038,14 +2118,15 @@ class EditorGame extends Game {
     }
 
     goto(path) {
+        var selectedElements = [];
+        for (let name in openElements) {
+            if (openElements[name].clickzone.classList.contains("selected")) {
+                selectedElements.push(openElements[name].element)
+            }
+        }
+        editorOverlay.innerHTML = "";
         while (slidesContainer.querySelector(".selected"))
             slidesContainer.querySelector(".selected").classList.remove("selected");
-        for (let name in openElements) {
-            deselectElement(openElements[name].element);
-        }
-        while (editorOverlay.lastElementChild) {
-            editorOverlay.lastElementChild.remove();
-        }
 
         super.goto(path);
 
@@ -2054,10 +2135,10 @@ class EditorGame extends Game {
         for (let element of game.currentSlide.children) {
             if (element.classList.contains("fh-element")) {
                 openElement(element);
+                if (selectedElements.includes(element))
+                    selectElement(element);
             }
         }
-        if (fh_inspect_element.classList.contains("selected"))
-            openElementInspector();
     }
 
     async runScript(script) { }
