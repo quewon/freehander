@@ -148,7 +148,7 @@ class Editor extends Game {
                         break;
                 }
             }
-            var html = "";
+
             var selectedClickzones;
             if (this.slidesContainer.classList.contains("focused")) {
                 selectedClickzones = this.slidesContainer.querySelectorAll(".selected");
@@ -157,42 +157,57 @@ class Editor extends Game {
             }
             var selectedElements = [];
             for (let selected of selectedClickzones) {
-                var element;
                 if (this.slidesContainer.classList.contains("focused")) {
-                    element = this.currentSlide.parentElement.querySelector(`:scope > [name="${selected.getAttribute("name")}"]`);
-                    var clone = element.cloneNode(true);
-                    for (let slide of clone.querySelectorAll(".fh-slide")) {
-                        slide.remove();
-                    }
-                    html += clone.outerHTML;
+                    selectedElements.push(this.currentSlide.parentElement.querySelector(`:scope > [name="${selected.getAttribute("name")}"]`));
                 } else {
-                    element = this.currentSlide.querySelector(`:scope > [name="${selected.getAttribute("name")}"]`);
-                    html += element.outerHTML;
+                    selectedElements.push(this.currentSlide.querySelector(`:scope > [name="${selected.getAttribute("name")}"]`));
                 }
-                selectedElements.push(element);
             }
-            if (html !== "") {
-                if (metaKey && e.code === "KeyC") {
-                    //copy
-                    navigator.clipboard.writeText(html);
-                    e.preventDefault();
-                } else if (metaKey && e.code === "KeyX") {
-                    //cut
-                    navigator.clipboard.writeText(html);
-                    for (let element of selectedElements) {
-                        this.deleteElement(element);
+
+            if (
+                metaKey && e.code === "KeyC" ||
+                metaKey && e.code === "KeyX" ||
+                metaKey && e.code === "KeyD"
+            ) {
+                var html = "";
+                for (let element of selectedElements) {
+                    if (this.slidesContainer.classList.contains("focused")) {
+                        var clone = element.cloneNode(true);
+                        for (let slide of clone.querySelectorAll(".fh-slide")) {
+                            slide.remove();
+                        }
+                        html += clone.outerHTML;
+                    } else {
+                        html += element.outerHTML;
+                    }
+                }
+                if (html !== "") {
+                    if (metaKey && e.code === "KeyC") {
+                        //copy
+                        navigator.clipboard.writeText(html);
+                    } else if (metaKey && e.code === "KeyX") {
+                        //cut
+                        navigator.clipboard.writeText(html);
+                        for (let element of selectedElements) {
+                            this.deleteElement(element);
+                        }
+                    } else if (metaKey && e.code === "KeyD") {
+                        //duplicate
+                        for (let element of selectedElements) {
+                            this.deselectElement(element);
+                        }
+                        this.pasteHTML(html, this.currentSlide);
                     }
                     e.preventDefault();
-                } else if (metaKey && e.code === "KeyD") {
-                    //duplicate
-                    this.pasteHTML(html, this.currentSlide);
-                    e.preventDefault();
                 }
             }
-            if (metaKey && e.code === "KeyV") {
+            else if (metaKey && e.code === "KeyV") {
                 //paste
                 navigator.clipboard.readText()
                 .then(text => {
+                    for (let element of selectedElements) {
+                        this.deselectElement(element);
+                    }
                     this.pasteHTML(text, this.currentSlide);
                 })
                 e.preventDefault();
@@ -270,6 +285,7 @@ class Editor extends Game {
                 if (parent === this.currentSlide) {
                     this.openElement(element);
                 }
+                this.selectElement(element);
             }
         }
     }
