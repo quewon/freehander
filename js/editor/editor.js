@@ -1890,13 +1890,13 @@ class EditorGame extends Game {
                 if (slidesContainer.classList.contains("focused")) {
                     for (let preview of slidesContainer.querySelectorAll(".fh-slide-preview-container.selected")) {
                         deleteElement(game.getElementAtPath(preview.dataset.path));
-                        save();
                     }
+                    save();
                 } else if (!editorInspector.classList.contains("focused")) {
                     for (let clickzone of editorOverlay.querySelectorAll(".fh-editor-clickzone.selected")) {
                         deleteElement(openElements[clickzone.getAttribute("name")].element);
-                        save();
                     }
+                    save();
                 }
             }
             
