@@ -779,8 +779,6 @@ function deleteElement(element) {
             game.goto(nextPreview.dataset.path);
         }
     }
-
-    save();
 }
 function deselectElement(element) {
     if (element.parentElement === game.currentSlide) {
@@ -888,9 +886,8 @@ function openElementInspector(element) {
             if (htmlInput.value.trim() === "") {
                 console.log("empty element deleted.");
                 deleteElement(element);
-            } else {
-                save();
             }
+            save();
         }
         htmlInput.value = element.innerHTML;
         
@@ -1281,7 +1278,6 @@ function createEditorClickzone(element) {
         }
     }
     clickzone.onmousedown = (e) => {
-        cancelClick = false;
         mousedownPosition = [e.pageX, e.pageY];
 
         if (editMode === "select" && e.button === 0) {
@@ -1294,8 +1290,9 @@ function createEditorClickzone(element) {
             } else {
                 clearTimeout(doubleClickTimeout);
                 initialClick = false;
-                doubleClick = true;
+                doubleClick = !cancelClick;
             }
+            cancelClick = false;
 
             if (!shiftKey && !clickzone.classList.contains("selected")) {
                 for (let name in openElements) {
@@ -1893,10 +1890,12 @@ class EditorGame extends Game {
                 if (slidesContainer.classList.contains("focused")) {
                     for (let preview of slidesContainer.querySelectorAll(".fh-slide-preview-container.selected")) {
                         deleteElement(game.getElementAtPath(preview.dataset.path));
+                        save();
                     }
                 } else if (!editorInspector.classList.contains("focused")) {
                     for (let clickzone of editorOverlay.querySelectorAll(".fh-editor-clickzone.selected")) {
                         deleteElement(openElements[clickzone.getAttribute("name")].element);
+                        save();
                     }
                 }
             }
@@ -1967,12 +1966,14 @@ class EditorGame extends Game {
                         for (let element of selectedElements) {
                             deleteElement(element);
                         }
+                        save();
                     } else if (metaKey && e.code === "KeyD") {
                         //duplicate
                         for (let element of selectedElements) {
                             deselectElement(element);
                         }
                         pasteHTML(html, game.currentSlide);
+                        save();
                     }
                     e.preventDefault();
                 }
@@ -1985,6 +1986,7 @@ class EditorGame extends Game {
                         deselectElement(element);
                     }
                     pasteHTML(text, game.currentSlide);
+                    save();
                 })
                 e.preventDefault();
             }
