@@ -1,7 +1,6 @@
 import { Game } from "../game.js";
 import { loadAssetFolder } from "./folder.js";
 import { get, set, del } from './lib/idb-keyval.js';
-import * as JSZip from './lib/jszip.min.js';
 
 var game;
 
@@ -1396,13 +1395,19 @@ async function saveDocument() {
         asset.setAttribute("src", asset.dataset.filepath);
     }
     var file = await createGameFile();
-    var url = URL.createObjectURL(file);
-
-    var a = document.createElement("a");
-    a.href = url;
-    a.download = `${game.gameElement.dataset.title}.html`;
-    a.click();
-    
+    var filename = `${game.gameElement.dataset.title}.html`;
+    if ('showSaveFilePicker' in self) {
+        var fileHandle = await showSaveFilePicker({ id: 'export-location', startIn: "documents", suggestedName: filename });
+        var writeable = await fileHandle.createWritable();
+        await writeable.write(file);
+        await writeable.close();
+    } else {
+        var url = URL.createObjectURL(file);
+        var a = document.createElement("a");
+        a.href = url;
+        a.download = filename;
+        a.click();
+    }
     refreshMedia();
 }
 async function exportDocument() {
@@ -1427,8 +1432,16 @@ async function exportDocument() {
         var blob = await fetch(source.dataset.url).then(res => res.blob());
         zip.file(key, blob);
     }
-    zip.generateAsync({ type: 'blob' }).then(content => {
-        saveAs(content, `${game.gameElement.dataset.title}.zip`)
+    zip.generateAsync({ type: 'blob' }).then(async content => {
+        var filename = `${game.gameElement.dataset.title}.zip`;
+        if ('showSaveFilePicker' in self) {
+            var fileHandle = await showSaveFilePicker({ id: 'export-location', startIn: "documents", suggestedName: filename });
+            var writeable = await fileHandle.createWritable();
+            await writeable.write(content);
+            await writeable.close();
+        } else {
+            saveAs(content, filename);
+        }
     })
 
     refreshMedia();
@@ -1670,6 +1683,9 @@ class EditorGame extends Game {
         }
         fh_inspect_element.onclick = () => openElementInspector();
         fh_inspect_document.onclick = () => openDocumentInspector();
+
+        if ('showSaveFilePicker' in self)
+            fh_document_fallback_message.remove();
 
         // init media
         fh_media_reload_button.onclick = () => {

@@ -6,6 +6,7 @@
     <title>freehander</title>
     <link rel="stylesheet" href="css/game.css">
     <link rel="stylesheet" href="css/editor.css">
+    <script src="js/editor/lib/jszip.min.js" defer></script>
     <script src="js/editor/lib/FileSaver.min.js" defer></script>
 </head>
 <body>
@@ -70,6 +71,10 @@
                             <button type="button" name="export"><b>[]</b><br>export</button>
                         </div>
                         <input style="display: none;" type="file" accept="text/html" name="html_input">
+                        <details style="margin-top: 1em" id="fh_document_fallback_message">
+                            <summary style="color: gray">...</summary>
+                            <p>the load, save, and export functions are a bit better-integrated on a browser that enables <a href="https://developer.mozilla.org/en-US/docs/Web/API/Window/showDirectoryPicker#browser_compatibility" target="_blank">direct file access through the File System API</a>.</p>
+                        </details>
                     </div>
                     <div id="fh_element_inspector" name="element" class="hidden">
                         <b>ELEMENT</b><br>
@@ -110,7 +115,7 @@
                             <button type="button" id="fh_media_load_button"><b>&#8801;</b><br>load new</button>
                         </div>
                         <details style="margin-top: 1em" id="fh_media_fallback_message">
-                            <summary style="color: gray">fallback note!</summary>
+                            <summary style="color: gray">...</summary>
                             <p>this media folder is nicer to use on a browser that enables <a href="https://developer.mozilla.org/en-US/docs/Web/API/Window/showDirectoryPicker#browser_compatibility" target="_blank">directory access through the File System API</a>. without it, this website can't remember your last loaded media folder and is a bit slower to re/load the directory.</p>
                         </details>
                     </div>
