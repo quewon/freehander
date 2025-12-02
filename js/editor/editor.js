@@ -1,6 +1,7 @@
 import { Game } from "../game.js";
-import { loadAssetFolder } from "./folder.js";
+import { loadAssetFolder } from "./utils/folder.js";
 import { get, set, del } from './lib/idb-keyval.js';
+import { DragHandler } from './utils/dragdrop.js';
 
 var game;
 
@@ -351,20 +352,19 @@ function createSlidePreview(slide) {
     if (slide.classList.contains("open")) {
         container.classList.add("selected");
     }
-    container.onmousedown = (e) => {
-        game.goto(container.dataset.path);
-        var mousedownPosition = [e.pageX, e.pageY];
-        const mousemoveEvent = (e) => {
-            if (Math.abs(mousedownPosition[0] - e.pageX) + Math.abs(mousedownPosition[1] - e.pageY) <= 5) {
-                return;
-            }
-            mouseupEvent();
+
+    var clone;
+    var offset;
+    var collapsedSlides;
+    var originalInset;
+    new DragHandler({
+        ondragstart: (e) => {
             const rect = container.getBoundingClientRect();
-            var offset = [
-                rect.left - mousedownPosition[0],
-                rect.top - mousedownPosition[1]
+            offset = [
+                rect.left - e.mousedownPosition[0],
+                rect.top - e.mousedownPosition[1]
             ]
-            var clone = container.cloneNode(true);
+            clone = container.cloneNode(true);
             clone.style.position = "absolute";
             clone.style.width = rect.width + "px";
             clone.style.height = rect.height + "px";
@@ -373,8 +373,8 @@ function createSlidePreview(slide) {
             document.querySelector(".fh-editor").appendChild(clone);
             container.classList.add("dragging");
 
-            var originalInset = parseInt(container.dataset.inset);
-            var collapsedSlides = [];
+            originalInset = parseInt(container.dataset.inset);
+            collapsedSlides = [];
             if (container.classList.contains("collapsed")) {
                 var collapsed = container.nextElementSibling;
                 while (collapsed && parseInt(collapsed.dataset.inset) > originalInset) {
@@ -382,79 +382,72 @@ function createSlidePreview(slide) {
                     collapsed = collapsed.nextElementSibling;
                 }
             }
-
-            var mmEvent = (e) => {
-                clone.style.left = (offset[0] + e.pageX) + "px";
-                clone.style.top = (offset[1] + e.pageY) + "px";
-                for (let slide of slidesContainer.children) {
-                    if (slide === container) continue;
-                    const rect = slide.getBoundingClientRect();
-                    if (e.pageY > rect.top && e.pageY < rect.bottom) {
-                        var ratio = 1/2;
-                        if (slide === slidesContainer.firstElementChild)
-                            ratio = 4/5;
-                        if (e.pageY < rect.top + rect.height * ratio) {
-                            slidesContainer.insertBefore(container, slide);
-                        } else {
-                            if (slide.classList.contains("collapsed")) {
-                                var lastChild = slide.nextElementSibling;
-                                while (lastChild.nextElementSibling && parseInt(lastChild.nextElementSibling.dataset.inset) > parseInt(slide.dataset.inset)) {
-                                    lastChild = lastChild.nextElementSibling;
-                                }
-                                lastChild.after(container);
-                            } else {
-                                slide.after(container);
+        },
+        ondrag: (e) => {
+            clone.style.left = (offset[0] + e.pageX) + "px";
+            clone.style.top = (offset[1] + e.pageY) + "px";
+            for (let slide of slidesContainer.children) {
+                if (slide === container) continue;
+                const rect = slide.getBoundingClientRect();
+                if (e.pageY > rect.top && e.pageY < rect.bottom) {
+                    var ratio = 1/2;
+                    if (slide === slidesContainer.firstElementChild)
+                        ratio = 4/5;
+                    if (e.pageY < rect.top + rect.height * ratio) {
+                        slidesContainer.insertBefore(container, slide);
+                    } else {
+                        if (slide.classList.contains("collapsed")) {
+                            var lastChild = slide.nextElementSibling;
+                            while (lastChild.nextElementSibling && parseInt(lastChild.nextElementSibling.dataset.inset) > parseInt(slide.dataset.inset)) {
+                                lastChild = lastChild.nextElementSibling;
                             }
+                            lastChild.after(container);
+                        } else {
+                            slide.after(container);
                         }
-                        break;
                     }
+                    break;
                 }
+            }
 
-                var previous = container.previousElementSibling;
-                while (previous && previous.style.display == "none") {
-                    previous = previous.previousElementSibling;
-                }
-                if (previous) {
-                    const style = getComputedStyle(slidesContainer);
-                    const insetMargin = parseFloat(style.getPropertyValue("--inset-margin"));
-                    const padding = parseFloat(style.getPropertyValue("--preview-padding"));
-                    const pixelsInset = clone.querySelector(".fh-slide-preview").getBoundingClientRect().left - slidesContainer.getBoundingClientRect().left - padding;
-                    var maxInset = parseInt(previous.dataset.inset) + 1;
-                    var targetInset = 0;
-                    if (pixelsInset > insetMargin) {
-                        targetInset = Math.floor(pixelsInset / insetMargin);
-                        targetInset = Math.min(maxInset, targetInset);
-                    }
-                    container.dataset.inset = targetInset;
-                    updateSlidePreviewScale(container.querySelector(".fh-slide-preview-bg"));
-                }
+            var previous = container.previousElementSibling;
+            while (previous && previous.style.display == "none") {
+                previous = previous.previousElementSibling;
             }
-            var muEvent = () => {
-                for (let collapsed of collapsedSlides) {
-                    collapsed.dataset.inset = parseInt(collapsed.dataset.inset) - originalInset + parseInt(container.dataset.inset);
+            if (previous) {
+                const style = getComputedStyle(slidesContainer);
+                const insetMargin = parseFloat(style.getPropertyValue("--inset-margin"));
+                const padding = parseFloat(style.getPropertyValue("--preview-padding"));
+                const pixelsInset = clone.querySelector(".fh-slide-preview").getBoundingClientRect().left - slidesContainer.getBoundingClientRect().left - padding;
+                var maxInset = parseInt(previous.dataset.inset) + 1;
+                var targetInset = 0;
+                if (pixelsInset > insetMargin) {
+                    targetInset = Math.floor(pixelsInset / insetMargin);
+                    targetInset = Math.min(maxInset, targetInset);
                 }
-                container.after(...collapsedSlides);
-                reorderPreviews();
-                clone.remove();
-                container.classList.remove("dragging");
-                document.removeEventListener("mousemove", mmEvent);
-                document.removeEventListener("mouseup", muEvent);
-                if (
-                    game.getPath(slide) !== originalPath || 
-                    slide.nextElementSibling !== originalNextSibling ||
-                    slide.previousElementSibling !== originalPreviousSibling
-                )
-                    save();
+                container.dataset.inset = targetInset;
+                updateSlidePreviewScale(container.querySelector(".fh-slide-preview-bg"));
             }
-            document.addEventListener("mousemove", mmEvent);
-            document.addEventListener("mouseup", muEvent);
+        },
+        ondragend: () => {
+            for (let collapsed of collapsedSlides) {
+                collapsed.dataset.inset = parseInt(collapsed.dataset.inset) - originalInset + parseInt(container.dataset.inset);
+            }
+            container.after(...collapsedSlides);
+            reorderPreviews();
+            clone.remove();
+            container.classList.remove("dragging");
+            if (
+                game.getPath(slide) !== originalPath || 
+                slide.nextElementSibling !== originalNextSibling ||
+                slide.previousElementSibling !== originalPreviousSibling
+            )
+                save();
         }
-        const mouseupEvent = () => {
-            document.removeEventListener("mousemove", mousemoveEvent);
-            document.removeEventListener("mouseup", mouseupEvent);
-        }
-        document.addEventListener("mousemove", mousemoveEvent);
-        document.addEventListener("mouseup", mouseupEvent);
+    }).attach(container);
+
+    container.onmousedown = () => {
+        game.goto(container.dataset.path);
     }
 
     const previewBg = document.createElement("div");
@@ -570,46 +563,17 @@ function reorderPreviews() {
         }
         return null;
     }
-    for (let selected of slidesContainer.querySelectorAll(".selected")) {
-        const slide = getSlide(selected);
-        var name = slide.getAttribute("name");
-        var nameExists = true;
-        while (nameExists) {
-            nameExists = false;
-            for (let child of slide.parentElement.querySelectorAll(`:scope > [name="${name}"]`)) {
-                if (child !== slide) {
-                    name = name + "*";
-                    nameExists = true;
-                }
-            }
-        }
-        if (name !== slide.getAttribute("name")) {
-            renameElement(slide, name, selected);
-        }
-    }
-    for (let preview of slidesContainer.children) {
+    for (let preview of [
+        ...slidesContainer.querySelectorAll(".selected"), 
+        ...slidesContainer.children
+    ]) {
         const slide = getSlide(preview);
         const inset = parseInt(preview.dataset.inset);
         var parentPreview = getParentPreview(preview);
+        var parentSlide;
         if (parentPreview) {
             preview.dataset.inset = parseInt(parentPreview.dataset.inset) + 1;
-            const parentSlide = getSlide(parentPreview);
-            var name = slide.getAttribute("name");
-            var nameExists = true;
-            while (nameExists) {
-                nameExists = false;
-                for (let child of parentSlide.children) {
-                    if (child !== slide && child.getAttribute("name") === name) {
-                        name = name + "*";
-                        nameExists = true;
-                    }
-                }
-            }
-            if (name !== slide.getAttribute("name")) {
-                renameElement(slide, name, preview);
-            }
-            parentSlide.appendChild(slide);
-            preview.dataset.path = game.getPath(slide);
+            parentSlide = getSlide(parentPreview);
         } else {
             preview.dataset.inset = "0";
             var nextPreview = preview.nextElementSibling;
@@ -617,10 +581,24 @@ function reorderPreviews() {
                 nextPreview.dataset.inset = parseInt(nextPreview.dataset.inset) - inset;
                 nextPreview = nextPreview.nextElementSibling;
             }
-            game.gameElement.appendChild(slide);
-            preview.dataset.path = game.getPath(slide);
+            parentSlide = game.gameElement;
         }
-
+        parentSlide.appendChild(slide);
+        var name = slide.getAttribute("name");
+        var nameExists = true;
+        while (nameExists) {
+            nameExists = false;
+            for (let child of parentSlide.children) {
+                if (child !== slide && child.getAttribute("name") === name) {
+                    name = name + "*";
+                    nameExists = true;
+                }
+            }
+        }
+        if (name !== slide.getAttribute("name")) {
+            renameElement(slide, name, preview);
+        }
+        preview.dataset.path = game.getPath(slide);
         updateSlidePreviewScale(preview.querySelector(".fh-slide-preview-bg"));
     }
     for (let preview of slidesContainer.children) {
@@ -1831,12 +1809,10 @@ class EditorGame extends Game {
                                     newStart -= 3;
                                     newEnd -= 3;
                                 }
-                                if (end >= j + len) {
+                                if (end >= j + len)
                                     newEnd -= 3;
-                                }
-                                while (lines[i][slash] === " ") {
+                                while (lines[i][slash] === " ")
                                     lines[i] = lines[i].substring(0, slash) + lines[i].slice(slash);
-                                }
                             } else {
                                 lines[i] = "// " + lines[i];
                                 if (start >= j) {
