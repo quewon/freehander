@@ -8,6 +8,7 @@ export class DragHandler {
 
     attach(element) {
         element.addEventListener("mousedown", e => {
+            if (e.button !== 0) return;
             const mousedownPosition = [e.pageX, e.pageY];
             const mousemoveEvent = (e) => {
                 if (
@@ -18,12 +19,16 @@ export class DragHandler {
                 mouseupEvent();
                 e.mousedownPosition = mousedownPosition;
                 if (this.ondragstart) this.ondragstart(e);
+                const mmEvent = (e) => {
+                    e.mousedownPosition = mousedownPosition;
+                    if (this.ondrag) this.ondrag(e);
+                }
                 const muEvent = (e) => {
                     this.ondragend(e);
-                    if (this.ondrag) document.removeEventListener("mousemove", this.ondrag);
+                    if (this.ondrag) document.removeEventListener("mousemove", mmEvent);
                     document.removeEventListener("mouseup", muEvent);
                 }
-                if (this.ondrag) document.addEventListener("mousemove", this.ondrag);
+                if (this.ondrag) document.addEventListener("mousemove", mmEvent);
                 document.addEventListener("mouseup", muEvent);
             }
             const mouseupEvent = () => {

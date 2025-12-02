@@ -1168,7 +1168,6 @@ function createEditorClickzone(element) {
 
     var grabbedClickzones = [];
     var grabOffsets;
-    var mousedownPosition;
     var cancelClick = false;
     var initialClick = false;
     var doubleClick = false;
@@ -1189,67 +1188,29 @@ function createEditorClickzone(element) {
         updateElementPoints(element, points);
         e.preventDefault();
     }
-    const mousemoveEvent = (e) => {
-        if (Math.abs(mousedownPosition[0] - e.pageX) + Math.abs(mousedownPosition[1] - e.pageY) > 3) {
-            cancelClick = true;
-            doubleClick = false;
-        }
-        const rect = game.cachedGameRect;
-        const x = (e.pageX - rect.left) / rect.width * 100;
-        const y = (e.pageY - rect.top) / rect.height * 100;
-        for (let i=0; i<grabbedClickzones.length; i++) {
-            const clickzone = grabbedClickzones[i];
-            const element = openElements[clickzone.getAttribute("name")].element;
-            const offset = grabOffsets[i];
-            setElementCenter(element, [offset[0] + x, offset[1] + y]);
-        }
-    }
-    const mouseupEvent = () => {
-        if (element.parentElement) {
-            const points = openElements[element.getAttribute("name")].handle.points;
-            if (!(
-                points[0][0] < 100 &&
-                points[2][0] > 0 &&
-                points[0][1] < 100 &&
-                points[2][0] > 0
-            )) {
-                console.log("out of bounds element deleted.");
-                deleteElement(element);
-            }
-        }
-        document.removeEventListener("mousemove", mousemoveEvent);
-        document.removeEventListener("mouseup", mouseupEvent);
-
-        if (cancelClick)
-            save();
-    }
     clickzone.onmouseup = (e) => {
-        if (editMode === "select" && e.button === 0) {
-            if (!cancelClick) {
-                if (shiftKey && clickzone.classList.contains("selected")) {
-                    deselectElement(element);
-                } else {
-                    selectElement(element);
+        if (!cancelClick && editMode === "select" && e.button === 0) {
+            if (shiftKey && clickzone.classList.contains("selected")) {
+                deselectElement(element);
+            } else {
+                selectElement(element);
 
-                    if (doubleClick) {
-                        openElementInspector(element);
-                        setTimeout(() => {
-                            const textarea = editorInspector.querySelector("textarea");
-                            if (textarea) {
-                                textarea.focus();
-                                textarea.selectionStart = textarea.selectionEnd = textarea.value.length;
-                            }
-                        }, 1);
-                        doubleClick = false;
-                    }
+                if (doubleClick) {
+                    openElementInspector(element);
+                    setTimeout(() => {
+                        const textarea = editorInspector.querySelector("textarea");
+                        if (textarea) {
+                            textarea.focus();
+                            textarea.selectionStart = textarea.selectionEnd = textarea.value.length;
+                        }
+                    }, 1);
+                    doubleClick = false;
                 }
             }
         }
     }
     clickzone.onmousedown = (e) => {
-        mousedownPosition = [e.pageX, e.pageY];
-
-        if (editMode === "select" && e.button === 0) {
+        if (editMode === "select") {
             if (!initialClick) {
                 initialClick = true;
                 doubleClick = false;
@@ -1297,11 +1258,39 @@ function createEditorClickzone(element) {
                     center[1] - y
                 ]);
             }
-
-            document.addEventListener("mousemove", mousemoveEvent);
-            document.addEventListener("mouseup", mouseupEvent);
         }
     }
+    new DragHandler({
+        ondrag: (e) => {
+            cancelClick = Math.abs(e.mousedownPosition[0] - e.pageX) + Math.abs(e.mousedownPosition[1] - e.pageY) > 3;
+            const rect = game.cachedGameRect;
+            const x = (e.pageX - rect.left) / rect.width * 100;
+            const y = (e.pageY - rect.top) / rect.height * 100;
+            for (let i=0; i<grabbedClickzones.length; i++) {
+                const clickzone = grabbedClickzones[i];
+                const element = openElements[clickzone.getAttribute("name")].element;
+                const offset = grabOffsets[i];
+                setElementCenter(element, [offset[0] + x, offset[1] + y]);
+            }
+        },
+        ondragend: () => {
+            if (element.parentElement) {
+                const points = openElements[element.getAttribute("name")].handle.points;
+                if (!(
+                    points[0][0] < 100 &&
+                    points[2][0] > 0 &&
+                    points[0][1] < 100 &&
+                    points[2][0] > 0
+                )) {
+                    console.log("out of bounds element deleted.");
+                    deleteElement(element);
+                }
+            }
+            if (cancelClick)
+                save();
+        },
+        threshold: 0
+    }).attach(clickzone);
     clickzone.addEventListener("contextmenu", e => {
         sendElementToBack(element);
         save();
