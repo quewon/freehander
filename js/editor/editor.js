@@ -1800,6 +1800,57 @@ class EditorGame extends Game {
                 this.style.height = "";
                 this.style.height = (this.scrollHeight + 2) + "px";
             })
+            textarea.addEventListener("keydown", function(e) {
+                if (e.code === "Tab") {
+                    this.value += "  ";
+                    e.preventDefault();
+                } else if (e.code === "Escape") {
+                    this.blur();
+                } else if (metaKey && e.key === "/") {
+                    const start = this.selectionStart;
+                    const end = this.selectionEnd;
+                    var newStart = this.selectionStart;
+                    var newEnd = this.selectionEnd;
+                    var lines = this.value.split("\n");
+                    var j = 0;
+                    for (let i=0; i<lines.length; i++) {
+                        const len = lines[i].length;
+                        if (
+                            start >= j && start <= j + len ||
+                            end >= j && end <= j + len ||
+                            j >= start && j + len <= end
+                        ) {
+                            if (lines[i].trim().indexOf("//") === 0) {
+                                const slash = lines[i].indexOf("//");
+                                lines[i] = lines[i].slice(slash + 3);
+                                if (start >= j) {
+                                    newStart -= 3;
+                                    newEnd -= 3;
+                                }
+                                if (end >= j + len) {
+                                    newEnd -= 3;
+                                }
+                                while (lines[i][slash] === " ") {
+                                    lines[i] = lines[i].substring(0, slash) + lines[i].slice(slash);
+                                }
+                            } else {
+                                lines[i] = "// " + lines[i];
+                                if (start >= j) {
+                                    newStart += 3;
+                                    newEnd += 3;
+                                } else {
+                                    newEnd += 3;
+                                }
+                            }
+                        }
+                        j += len + 1;
+                    }
+                    this.value = lines.join("\n");
+                    this.selectionStart = newStart;
+                    this.selectionEnd = newEnd;
+                    e.preventDefault();
+                }
+            })
         }
         fh_inspect_element.onclick = () => openElementInspector();
         fh_inspect_document.onclick = () => openDocumentInspector();
@@ -1993,13 +2044,48 @@ class EditorGame extends Game {
                 redo();
                 e.preventDefault();
             }
-            else if (metaKey && e.code === "KeyZ") {
-                undo();
-                e.preventDefault();
-            }
-            else if (metaKey && e.code === "KeyA") {
-                for (let name in openElements) {
-                    selectElement(openElements[name].element);
+            else if (metaKey) {
+                switch (e.code) {
+                    case "KeyZ":
+                        undo();
+                        e.preventDefault();
+                        break;
+                    case "KeyA":
+                        for (let name in openElements) {
+                            selectElement(openElements[name].element);
+                        }
+                        e.preventDefault();
+                        break;
+                    case "KeyP":
+                        playGame();
+                        e.preventDefault();
+                        break;
+                    case "KeyS":
+                        saveDocument();
+                        e.preventDefault();
+                        break;
+                    case "KeyL":
+                        loadDocument();
+                        e.preventDefault();
+                        break;
+                    case "KeyE":
+                        exportDocument();
+                        e.preventDefault();
+                        break;
+                    case "KeyM":
+                        if (!fh_media_inspector.classList.contains("hidden")) {
+                            fh_media_reload_button.click();
+                        } else {
+                            fh_media.click();
+                        }
+                        e.preventDefault();
+                        break;
+                    case "KeyI":
+                        if (!e.altKey) {
+                            openElementInspector();
+                            e.preventDefault();
+                        }
+                        break;
                 }
             }
         })
