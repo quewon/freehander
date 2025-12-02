@@ -2142,6 +2142,9 @@ class EditorGame extends Game {
                     selectElement(element);
             }
         }
+
+        if (fh_inspect_element.classList.contains("selected"))
+            openElementInspector();
     }
 
     async runScript(script) { }
