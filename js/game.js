@@ -222,13 +222,23 @@ class Game {
                 const cover = document.createElement("div");
                 cover.className = "fh-svgload-cover";
                 element.after(cover);
-
-                const style = getComputedStyle(cover);
-                if (
-                    style.backgroundImage === "none" &&
-                    style.backgroundColor === "rgba(0, 0, 0, 0)"
-                )
-                    cover.style.background = "white";
+                
+                var search = cover;
+                var computedBackgroundColor = getComputedStyle(search).backgroundColor;
+                while (computedBackgroundColor === 'rgba(0, 0, 0, 0)' || computedBackgroundColor === 'transparent') {
+                    search = search.parentElement;
+                    if (!search) {
+                        computedBackgroundColor = "white";
+                        break;
+                    }
+                    computedBackgroundColor = getComputedStyle(search).backgroundColor;
+                }
+                var rgba = [255, 255, 255, 1];
+                if (computedBackgroundColor.indexOf("rgba(") === 0)
+                    rgba = computedBackgroundColor.slice(5,-1).split(",");
+                else if (computedBackgroundColor.indexOf("rgb(") === 0)
+                    rgba = [...computedBackgroundColor.slice(4,-1).split(","), 1];
+                cover.style.backgroundColor = `rgba(${rgba[0]}, ${rgba[1]}, ${rgba[2]}, 1)`;
 
                 requestAnimationFrame(() => {
                     requestAnimationFrame(() => {

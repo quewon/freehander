@@ -916,7 +916,8 @@ function openElementInspector(element) {
         var styleElement = element.querySelector(":scope > style");
         if (!styleElement) {
             styleElement = document.createElement("style");
-            styleElement.textContent = "@scope {\n  :scope {\n    background: transparent;\n  }\n}";
+            // for whatever reason, writing ":scope { background: transparent }" here causes scope issues.
+            styleElement.textContent = "@scope {\n}";
             element.prepend(styleElement);
         }
         cssInput.value = styleElement.textContent;
