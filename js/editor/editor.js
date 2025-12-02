@@ -1802,7 +1802,11 @@ class EditorGame extends Game {
             })
             textarea.addEventListener("keydown", function(e) {
                 if (e.code === "Tab") {
-                    this.value += "  ";
+                    const start = this.selectionStart;
+                    const end = this.selectionEnd;
+                    this.value = this.value.substring(0, start) + "  " + this.value.substring(end);
+                    this.selectionStart = start + 2;
+                    this.selectionEnd = start + 2;
                     e.preventDefault();
                 } else if (e.code === "Escape") {
                     this.blur();
