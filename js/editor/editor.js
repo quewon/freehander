@@ -1253,18 +1253,23 @@ function createEditorClickzone(element) {
     clickzone.onmouseup = (e) => {
         if (editMode === "select" && e.button === 0) {
             if (!cancelClick) {
-                selectElement(element);
-            }
-            if (doubleClick) {
-                openElementInspector(element);
-                setTimeout(() => {
-                    const textarea = editorInspector.querySelector("textarea");
-                    if (textarea) {
-                        textarea.focus();
-                        textarea.selectionStart = textarea.selectionEnd = textarea.value.length;
+                if (shiftKey && clickzone.classList.contains("selected")) {
+                    deselectElement(element);
+                } else {
+                    selectElement(element);
+
+                    if (doubleClick) {
+                        openElementInspector(element);
+                        setTimeout(() => {
+                            const textarea = editorInspector.querySelector("textarea");
+                            if (textarea) {
+                                textarea.focus();
+                                textarea.selectionStart = textarea.selectionEnd = textarea.value.length;
+                            }
+                        }, 1);
+                        doubleClick = false;
                     }
-                }, 1);
-                doubleClick = false;
+                }
             }
         }
     }
