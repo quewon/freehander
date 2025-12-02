@@ -281,12 +281,6 @@ function restoreState(state) {
     else
         openElementInspector();
     document.querySelector(":focus")?.blur();
-
-    if (editMode !== "doodle") {
-        for (let name in openElements) {
-            selectElement(openElements[name].element);
-        }
-    }
 }
 
 // slide functions
@@ -1138,7 +1132,7 @@ function pasteHTML(html, parent) {
     parent.insertAdjacentHTML("beforeend", html);
     var newElementCount = parent.children.length - beforeCount;
 
-    for (let i=newElementCount-1; i>=0; i--) {
+    for (let i=0; i<newElementCount; i++) {
         var element = parent.children[beforeCount + i];
         var actualParent = parent;
         if (element.classList.contains("fh-slide"))
@@ -1314,7 +1308,10 @@ function createEditorClickzone(element) {
             for (let clickzone of grabbedClickzones) {
                 const name = clickzone.getAttribute("name");
                 const el = openElements[name].element;
-                if (!shiftKey) bringElementToFront(el);
+                if (!shiftKey) {
+                    bringElementToFront(el);
+                    save();
+                }
                 const center = getElementCenter(el);
                 grabOffsets.push([
                     center[0] - x,
@@ -1328,6 +1325,7 @@ function createEditorClickzone(element) {
     }
     clickzone.addEventListener("contextmenu", e => {
         sendElementToBack(element);
+        save();
         e.preventDefault();
     })
 
