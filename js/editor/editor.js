@@ -1808,27 +1808,6 @@ class EditorGame extends Game {
             fh_document_fallback_message.remove();
 
         // init media
-        fh_media_reload_button.onclick = () => {
-            mediaFolder = null;
-            fh_media.click();
-        }
-        if ('showDirectoryPicker' in self) {
-            fh_media_reload_button.onclick = fh_media.click;
-            fh_media_load_button.onclick = () => {
-                mediaFolder = null;
-                del('media');
-                fh_media.click();
-            }
-            fh_media_fallback_message.remove();
-        } else {
-            fh_media_reload_button.innerHTML = "<b>⟳</b><br>(re)load";
-            fh_media_load_button.remove();
-        }
-        fh_media_input.onchange = () => {
-            createMediaFolder(fh_media_input.files);
-            openMediaInspector();
-            fh_media_input.value = "";
-        }
         fh_media.onclick = async () => {
             if (!mediaFolder) {
                 if ('showDirectoryPicker' in self) {
@@ -1864,6 +1843,26 @@ class EditorGame extends Game {
                 openMediaInspector();
             }
         };
+        fh_media_reload_button.onclick = () => {
+            mediaFolder = null;
+            fh_media.click();
+        }
+        if ('showDirectoryPicker' in self) {
+            fh_media_load_button.onclick = () => {
+                mediaFolder = null;
+                del('media');
+                fh_media.click();
+            }
+            fh_media_fallback_message.remove();
+        } else {
+            fh_media_reload_button.innerHTML = "<b>⟳</b><br>(re)load";
+            fh_media_load_button.remove();
+        }
+        fh_media_input.onchange = () => {
+            createMediaFolder(fh_media_input.files);
+            openMediaInspector();
+            fh_media_input.value = "";
+        }
 
         document.addEventListener("keydown", e => {
             if (e.key === "Shift")
