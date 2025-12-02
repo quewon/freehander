@@ -239,6 +239,17 @@ body {
 .fh-element-handle * {
     pointer-events: auto;
 }
+#fh_selection_box {
+    position: absolute;
+    border: 1px solid var(--accent);
+    background-color: rgba(0, 255, 100, .1);
+    box-sizing: border-box;
+}
+#fh_text_box {
+    position: absolute;
+    border: 1px solid var(--accent);
+    box-sizing: border-box;
+}
 
 .fh-inspector {
     width: 250px;

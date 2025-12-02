@@ -36,212 +36,221 @@ function switchMode(modename) {
         toolbar.querySelector(".selected").classList.remove("selected");
     document.getElementById(`fh_${editMode}_mode`).classList.add("selected");
 }
-function selectionMousedown(e) {
-    const mousedownPosition = [e.pageX, e.pageY];
-    const box = document.createElement("div");
-    box.style.position = "absolute";
-    box.style.border = "1px solid greenyellow";
-    box.style.backgroundColor = "rgba(0, 255, 100, .1)";
-    box.style.boxSizing = "border-box";
-    const mousemoveEvent = (e) => {
-        if (Math.abs(mousedownPosition[0] - e.pageX) + Math.abs(mousedownPosition[1] - e.pageY) > 3) {
-            editorOverlay.appendChild(box);
-        }
-        const rect = game.cachedGameRect;
-        var min = [
-            (Math.min(mousedownPosition[0], e.pageX) - rect.left) / rect.width * 100, 
-            (Math.min(mousedownPosition[1], e.pageY) - rect.top) / rect.height * 100
-        ];
-        var max = [
-            (Math.max(mousedownPosition[0], e.pageX) - rect.left) / rect.width * 100, 
-            (Math.max(mousedownPosition[1], e.pageY) - rect.top) / rect.height * 100,
-        ];
-        box.style.left = min[0] + "%";
-        box.style.top = min[1] + "%";
-        box.style.width = (max[0] - min[0]) + "%";
-        box.style.height = (max[1] - min[1]) + "%";
+async function initDoodleMode() {
+    // tooltip
 
-        for (let name in openElements) {
-            const data = openElements[name];
-            const points = data.handle.points;
-            if (
-                min[0] < points[2][0] &&
-                max[0] > points[0][0] &&
-                min[1] < points[2][1] &&
-                max[1] > points[0][1]
-            ) {
-                if (!data.clickzone.classList.contains("selected"))
-                    selectElement(openElements[name].element);
-            } else {
-                if (data.clickzone.classList.contains("selected"))
-                    deselectElement(openElements[name].element);
-            }
+    doodleSettings = {
+        fill: await get('fill') || "none",
+        stroke: await get('stroke') || "black",
+        strokeWidth: await get('stroke-width') || 1
+    }
+    function standardize_color(str) { //https://stackoverflow.com/a/47355187/30103476
+        var ctx = document.createElement("canvas").getContext("2d");
+        ctx.fillStyle = str;
+        return ctx.fillStyle;
+    }
+    for (const setting of ["fill", "stroke"]) {
+        const text = fh_doodle_tooltip.querySelector(`[name=${setting}]`);
+        const picker = fh_doodle_tooltip.querySelector(`[name=${setting}_picker]`);
+        text.value = doodleSettings[setting];
+        picker.value = standardize_color(doodleSettings[setting]);
+        text.oninput = function() {
+            var value = this.value.trim() === "" ? "none" : this.value;
+            set(setting, value); doodleSettings[setting] = value;
+            picker.value = standardize_color(value);
         }
+        text.onchange = function() {
+            this.value = this.value.trim() === "" ? "none" : this.value;
+        }
+        picker.oninput = function() {
+            set(setting, this.value); doodleSettings[setting] = this.value;
+            text.value = this.value;
+        };
     }
-    const mouseupEvent = (e) => {
-        box.remove();
-        document.removeEventListener("mousemove", mousemoveEvent);
-        document.removeEventListener("mouseup", mouseupEvent);
-    }
-    document.addEventListener("mousemove", mousemoveEvent);
-    document.addEventListener("mouseup", mouseupEvent);
-}
-function doodlemodeMousedown(e) {
-    fh_doodle_tooltip.classList.add("hidden");
+    fh_doodle_tooltip.querySelector("[name=stroke-width]").value = doodleSettings.strokeWidth;
+    fh_doodle_tooltip.querySelector("[name=stroke-width]").oninput = function() {
+        set('stroke-width', Math.max(this.value, 1));
+        doodleSettings.strokeWidth = Math.max(this.value, 1);
+    };
+    fh_doodle_tooltip.querySelector("[name=stroke-width]").onchange = function() {
+        if (this.value < 1) this.value = 1;
+    };
+
+    // doodle
 
     const padding = 5;
-    const gameRect = game.cachedGameRect;
-    var canvasRect = [e.pageX - gameRect.left, e.pageY - gameRect.top, 0, 0];
-    const element = createElement(
-        canvasRect[0] / gameRect.width * 100,
-        canvasRect[1] / gameRect.height * 100,
-        1, 1,
-        `<svg width="0" height="0" viewBox="0 0 0 0"><path fill="${doodleSettings.fill}" stroke="${doodleSettings.stroke}" stroke-width="${doodleSettings.strokeWidth}" d="" /></svg>`
-    )
-    const svg = element.querySelector("svg");
-    const path = svg.firstElementChild;
-    var pathPoints = [[0, 0]];
+    var canvasRect;
+    var element;
+    var svg;
+    var path;
+    var pathPoints;
 
-    const mousemoveEvent = (e) => {
-        const min = [
-            Math.min(canvasRect[0], (e.pageX - gameRect.left)),
-            Math.min(canvasRect[1], (e.pageY - gameRect.top))
-        ]
-        const max = [
-            Math.max(canvasRect[0] + canvasRect[2], (e.pageX - gameRect.left)),
-            Math.max(canvasRect[1] + canvasRect[3], (e.pageY - gameRect.top))
-        ]
-        const offset = [
-            min[0] - canvasRect[0],
-            min[1] - canvasRect[1]
-        ]
-        updateElementPoints(element, [
-            [(min[0] - padding) / game.cachedGameRect.width * 100, (min[1] - padding) / game.cachedGameRect.height * 100],
-            [(max[0] + padding) / game.cachedGameRect.width * 100, (min[1] - padding) / game.cachedGameRect.height * 100],
-            [(max[0] + padding) / game.cachedGameRect.width * 100, (max[1] + padding) / game.cachedGameRect.height * 100],
-            [(min[0] - padding) / game.cachedGameRect.width * 100, (max[1] + padding) / game.cachedGameRect.height * 100]
-        ]);
-        canvasRect = [min[0], min[1], (max[0] - min[0]), (max[1] - min[1])];
+    new DragHandler({
+        onmousedown: e => {
+            if (editMode !== "doodle") return;
+            fh_doodle_tooltip.classList.add("hidden");
 
-        svg.setAttribute("width", canvasRect[2] + padding * 2);
-        svg.setAttribute("height", canvasRect[3] + padding * 2);
-        svg.setAttribute("viewBox", `0 0 ${canvasRect[2] + padding * 2} ${canvasRect[3] + padding * 2}`)
+            const rect = game.cachedGameRect;
+            canvasRect = [e.pageX - rect.left, e.pageY - rect.top, 0, 0];
+            element = createElement(
+                canvasRect[0] / rect.width * 100,
+                canvasRect[1] / rect.height * 100,
+                1, 1,
+                `<svg width="0" height="0" viewBox="0 0 0 0"><path fill="${doodleSettings.fill}" stroke="${doodleSettings.stroke}" stroke-width="${doodleSettings.strokeWidth}" d="" /></svg>`
+            )
+            svg = element.querySelector("svg");
+            path = svg.firstElementChild;
+            pathPoints = [[0, 0]];
+        },
+        ondrag: (e) => {
+            if (editMode !== "doodle") return;
+            const rect = game.cachedGameRect;
+            const min = [
+                Math.min(canvasRect[0], (e.pageX - rect.left)),
+                Math.min(canvasRect[1], (e.pageY - rect.top))
+            ]
+            const max = [
+                Math.max(canvasRect[0] + canvasRect[2], (e.pageX - rect.left)),
+                Math.max(canvasRect[1] + canvasRect[3], (e.pageY - rect.top))
+            ]
+            const offset = [
+                min[0] - canvasRect[0],
+                min[1] - canvasRect[1]
+            ]
+            updateElementPoints(element, [
+                [(min[0] - padding) / rect.width * 100, (min[1] - padding) / rect.height * 100],
+                [(max[0] + padding) / rect.width * 100, (min[1] - padding) / rect.height * 100],
+                [(max[0] + padding) / rect.width * 100, (max[1] + padding) / rect.height * 100],
+                [(min[0] - padding) / rect.width * 100, (max[1] + padding) / rect.height * 100]
+            ]);
+            canvasRect = [min[0], min[1], (max[0] - min[0]), (max[1] - min[1])];
 
-        for (let point of pathPoints) {
-            point[0] -= offset[0];
-            point[1] -= offset[1];
-        }
-        pathPoints.push([e.pageX - canvasRect[0] - gameRect.left, e.pageY - canvasRect[1] - gameRect.top]);
-        var d = "";
-        for (let i=0; i<pathPoints.length; i++) {
-            d += i > 0 ? "L" : "M";
-            d += `${pathPoints[i][0] + padding} ${pathPoints[i][1] + padding} `;
-        }
-        path.setAttribute("d", d);
-    }
-    const mouseupEvent = () => {
-        if (canvasRect[2] === 0 && canvasRect[3] === 0) {
-            deleteElement(element);
-            return;
-        }
-        updateElementPoints(element, [
-            [(canvasRect[0] - padding) / game.cachedGameRect.width * 100, (canvasRect[1] - padding) / game.cachedGameRect.height * 100],
-            [(canvasRect[2] + canvasRect[0] + padding) / game.cachedGameRect.width * 100, (canvasRect[1] - padding) / game.cachedGameRect.height * 100],
-            [(canvasRect[2] + canvasRect[0] + padding) / game.cachedGameRect.width * 100, (canvasRect[3] + canvasRect[1] + padding) / game.cachedGameRect.height * 100],
-            [(canvasRect[0] - padding) / game.cachedGameRect.width * 100, (canvasRect[3] + canvasRect[1] + padding) / game.cachedGameRect.height * 100]
-        ]);
-        document.removeEventListener("mousemove", mousemoveEvent);
-        document.removeEventListener("mouseup", mouseupEvent);
-        save();
-    }
-    document.addEventListener("mousemove", mousemoveEvent);
-    document.addEventListener("mouseup", mouseupEvent);
-}
-function textmodeMousedown(e) {
-    const mousedownPosition = [e.pageX, e.pageY];
-    for (let name in openElements) {
-        if (openElements[name].clickzone.classList.contains("selected"))
-            deselectElement(openElements[name].element);
-    }
-    const box = document.createElement("div");
-    box.style.position = "absolute";
-    box.style.border = "1px solid greenyellow";
-    box.style.boxSizing = "border-box";
-    editorOverlay.appendChild(box);
-    const mousemoveEvent = (e) => {
-        const rect = game.cachedGameRect;
-        var min = [
-            (Math.min(mousedownPosition[0], e.pageX) - rect.left) / rect.width * 100, 
-            (Math.min(mousedownPosition[1], e.pageY) - rect.top) / rect.height * 100
-        ];
-        var max = [
-            (Math.max(mousedownPosition[0], e.pageX) - rect.left) / rect.width * 100, 
-            (Math.max(mousedownPosition[1], e.pageY) - rect.top) / rect.height * 100,
-        ];
-        box.style.left = min[0] + "%";
-        box.style.top = min[1] + "%";
-        box.style.width = (max[0] - min[0]) + "%";
-        box.style.height = (max[1] - min[1]) + "%";
-    }
-    const mouseupEvent = (e) => {
-        const rect = game.cachedGameRect;
-        var x, y, w, h;
-        var sizeSet = false;
-        if (Math.abs(mousedownPosition[0] - e.pageX) + Math.abs(mousedownPosition[1] - e.pageY) > 3) {
-            x = parseFloat(box.style.left);
-            y = parseFloat(box.style.top);
-            w = parseFloat(box.style.width);
-            h = parseFloat(box.style.height);
-            sizeSet = true;
-        } else {
-            x = (mousedownPosition[0] - rect.left) / rect.width * 100;
-            y = (mousedownPosition[1] - rect.top) / rect.height * 100;
-        }
-        const element = createElement(x, y, w, h);
-        if (!sizeSet) element.dataset.fithtml = "true";
-        box.remove();
-        selectElement(element);
+            svg.setAttribute("width", canvasRect[2] + padding * 2);
+            svg.setAttribute("height", canvasRect[3] + padding * 2);
+            svg.setAttribute("viewBox", `0 0 ${canvasRect[2] + padding * 2} ${canvasRect[3] + padding * 2}`)
 
-        openElementInspector(element);
-        var htmlInput = fh_element_inspector.querySelector("[name=html]");
-        htmlInput.style.borderColor = "red";
-        htmlInput.oninput = () => {
-            setElementHTML(element, htmlInput.value);
-            if (!sizeSet) {
-                const x1 = x;
-                const y1 = y;
-                const x2 = x + (element.clientWidth / game.cachedGameRect.width * 100);
-                const y2 = y + (element.clientHeight / game.cachedGameRect.height * 100);
-                updateElementPoints(element, [
-                    [x1, y1],
-                    [x2, y1],
-                    [x2, y2],
-                    [x1, y2]
-                ]);
+            for (let point of pathPoints) {
+                point[0] -= offset[0];
+                point[1] -= offset[1];
             }
-            if (element.innerHTML.trim() === "") {
-                htmlInput.style.borderColor = "red";
-            } else {
-                htmlInput.style.borderColor = "";
+            pathPoints.push([e.pageX - canvasRect[0] - rect.left, e.pageY - canvasRect[1] - rect.top]);
+            var d = "";
+            for (let i=0; i<pathPoints.length; i++) {
+                d += i > 0 ? "L" : "M";
+                d += `${pathPoints[i][0] + padding} ${pathPoints[i][1] + padding} `;
             }
-        }
-        htmlInput.onblur = () => {
-            if (element.innerHTML.trim() === "") {
-                console.log("empty element deleted.");
+            path.setAttribute("d", d);
+        },
+        ondragend: () => {
+            if (editMode !== "doodle") return;
+            if (canvasRect[2] === 0 && canvasRect[3] === 0) {
                 deleteElement(element);
-            } else {
-                htmlInput.onblur = null;
-                openElementInspector(element);
+                return;
             }
-        }
-        htmlInput.focus();
+            const rect = game.cachedGameRect;
+            updateElementPoints(element, [
+                [(canvasRect[0] - padding) / rect.width * 100, (canvasRect[1] - padding) / rect.height * 100],
+                [(canvasRect[2] + canvasRect[0] + padding) / rect.width * 100, (canvasRect[1] - padding) / rect.height * 100],
+                [(canvasRect[2] + canvasRect[0] + padding) / rect.width * 100, (canvasRect[3] + canvasRect[1] + padding) / rect.height * 100],
+                [(canvasRect[0] - padding) / rect.width * 100, (canvasRect[3] + canvasRect[1] + padding) / rect.height * 100]
+            ]);
+            save();
+        },
+        threshold: 0
+    }).attach(editorOverlay);
+}
+function initTextMode() {
+    const box = fh_text_box;
+    box.remove();
 
-        switchMode();
-        document.removeEventListener("mousemove", mousemoveEvent);
-        document.removeEventListener("mouseup", mouseupEvent);
-    }
-    document.addEventListener("mousemove", mousemoveEvent);
-    document.addEventListener("mouseup", mouseupEvent);
+    new DragHandler({
+        onmousedown: (e) => {
+            if (editMode !== "text") return;
+            for (let name in openElements) {
+                if (openElements[name].clickzone.classList.contains("selected"))
+                    deselectElement(openElements[name].element);
+            }
+            const rect = game.cachedGameRect;
+            box.style.left = (e.pageX - rect.left) / rect.width * 100 + "%";
+            box.style.top = (e.pageY - rect.top) / rect.height * 100 + "%";
+            box.style.width = "";
+            box.style.height = "";
+            editorOverlay.appendChild(box);
+        },
+        ondrag: (e) => {
+            if (editMode !== "text") return;
+            const rect = game.cachedGameRect;
+            var min = [
+                (Math.min(e.mousedownPosition[0], e.pageX) - rect.left) / rect.width * 100, 
+                (Math.min(e.mousedownPosition[1], e.pageY) - rect.top) / rect.height * 100
+            ];
+            var max = [
+                (Math.max(e.mousedownPosition[0], e.pageX) - rect.left) / rect.width * 100, 
+                (Math.max(e.mousedownPosition[1], e.pageY) - rect.top) / rect.height * 100,
+            ];
+            box.style.left = min[0] + "%";
+            box.style.top = min[1] + "%";
+            box.style.width = (max[0] - min[0]) + "%";
+            box.style.height = (max[1] - min[1]) + "%";
+        },
+        ondragend: (e) => {
+            if (editMode !== "text") return;
+            const rect = game.cachedGameRect;
+            var x, y, w, h;
+            var sizeSet = false;
+            if (Math.abs(e.mousedownPosition[0] - e.pageX) + Math.abs(e.mousedownPosition[1] - e.pageY) > 3) {
+                x = parseFloat(box.style.left);
+                y = parseFloat(box.style.top);
+                w = parseFloat(box.style.width);
+                h = parseFloat(box.style.height);
+                sizeSet = true;
+            } else {
+                x = (e.mousedownPosition[0] - rect.left) / rect.width * 100;
+                y = (e.mousedownPosition[1] - rect.top) / rect.height * 100;
+            }
+            const element = createElement(x, y, w, h);
+            if (!sizeSet) element.dataset.fithtml = "true";
+            box.remove();
+            selectElement(element);
+
+            openElementInspector(element);
+            var htmlInput = fh_element_inspector.querySelector("[name=html]");
+            htmlInput.style.borderColor = "";
+            htmlInput.oninput = () => {
+                setElementHTML(element, htmlInput.value);
+                if (!sizeSet) {
+                    const x1 = x;
+                    const y1 = y;
+                    const x2 = x + (element.clientWidth / game.cachedGameRect.width * 100);
+                    const y2 = y + (element.clientHeight / game.cachedGameRect.height * 100);
+                    updateElementPoints(element, [
+                        [x1, y1],
+                        [x2, y1],
+                        [x2, y2],
+                        [x1, y2]
+                    ]);
+                }
+                if (element.innerHTML.trim() === "") {
+                    htmlInput.style.borderColor = "red";
+                } else {
+                    htmlInput.style.borderColor = "";
+                }
+            }
+            htmlInput.onblur = () => {
+                if (element.innerHTML.trim() === "") {
+                    console.log("empty element deleted.");
+                    deleteElement(element);
+                } else {
+                    htmlInput.onblur = null;
+                    openElementInspector(element);
+                }
+            }
+            htmlInput.focus();
+
+            switchMode();
+        },
+        threshold: 0
+    }).attach(editorOverlay);
 }
 
 // save, undo, redo
@@ -1209,8 +1218,9 @@ function createEditorClickzone(element) {
             }
         }
     }
-    clickzone.onmousedown = (e) => {
-        if (editMode === "select") {
+    new DragHandler({
+        onmousedown: (e) => {
+            if (editMode !== "select") return;
             if (!initialClick) {
                 initialClick = true;
                 doubleClick = false;
@@ -1258,10 +1268,10 @@ function createEditorClickzone(element) {
                     center[1] - y
                 ]);
             }
-        }
-    }
-    new DragHandler({
+            e.stopPropagation();
+        },
         ondrag: (e) => {
+            if (editMode !== "select") return;
             cancelClick = Math.abs(e.mousedownPosition[0] - e.pageX) + Math.abs(e.mousedownPosition[1] - e.pageY) > 3;
             const rect = game.cachedGameRect;
             const x = (e.pageX - rect.left) / rect.width * 100;
@@ -1274,6 +1284,7 @@ function createEditorClickzone(element) {
             }
         },
         ondragend: () => {
+            if (editMode !== "select") return;
             if (element.parentElement) {
                 const points = openElements[element.getAttribute("name")].handle.points;
                 if (!(
@@ -1331,28 +1342,32 @@ function createElementHandle(element) {
         svg.appendChild(iedge);
         handle.invisibleEdges.push(iedge);
 
-        var edgeOffsets;
         iedge.onmouseover = () => {
             vedge.setAttribute("stroke", "var(--handle-hover-color)");
         }
         iedge.onmouseleave = () => {
             vedge.setAttribute("stroke", "var(--handle-color)");
         }
-        iedge.onmousedown = (e) => {
-            const rect = svg.getBoundingClientRect();
-            const x = (e.pageX - rect.left) / game.cachedGameRect.width * 100;
-            const y = (e.pageY - rect.top) / game.cachedGameRect.height * 100;
-            edgeOffsets = [
-                [
-                    handle.points[i][0] - x,
-                    handle.points[i][1] - y
-                ],
-                [
-                    handle.points[i >= 3 ? 0 : i + 1][0] - x,
-                    handle.points[i >= 3 ? 0 : i + 1][1] - y
-                ]
-            ];
-            const mousemoveEvent = (e) => {
+        var edgeOffsets;
+        new DragHandler({
+            onmousedown: (e) => {
+                if (editMode !== "select") return;
+                const rect = svg.getBoundingClientRect();
+                const x = (e.pageX - rect.left) / game.cachedGameRect.width * 100;
+                const y = (e.pageY - rect.top) / game.cachedGameRect.height * 100;
+                edgeOffsets = [
+                    [
+                        handle.points[i][0] - x,
+                        handle.points[i][1] - y
+                    ],
+                    [
+                        handle.points[i >= 3 ? 0 : i + 1][0] - x,
+                        handle.points[i >= 3 ? 0 : i + 1][1] - y
+                    ]
+                ];
+            },
+            ondrag: (e) => {
+                if (editMode !== "select") return;
                 const rect = svg.getBoundingClientRect();
                 const x = (e.pageX - rect.left) / game.cachedGameRect.width * 100;
                 const y = (e.pageY - rect.top) / game.cachedGameRect.height * 100;
@@ -1374,14 +1389,9 @@ function createElementHandle(element) {
                     element.removeAttribute("data-fithtml");
                     openElementInspector(element);
                 }
-            }
-            const mouseupEvent = () => {
-                document.removeEventListener("mouseup", mouseupEvent);
-                document.removeEventListener("mousemove", mousemoveEvent);
-            }
-            document.addEventListener("mouseup", mouseupEvent);
-            document.addEventListener("mousemove", mousemoveEvent);
-        }
+            },
+            threshold: 0
+        }).attach(iedge);
     }
 
     for (let i=0; i<4; i++) {
@@ -1407,8 +1417,9 @@ function createElementHandle(element) {
         ivert.onmouseleave = () => {
             vvert.setAttribute("stroke", "var(--handle-color)");
         }
-        ivert.onmousedown = () => {
-            const mousemoveEvent = (e) => {
+        new DragHandler({
+            ondrag: (e) => {
+                if (editMode !== "select") return;
                 const parentRect = svg.getBoundingClientRect();
                 const x = (e.pageX - parentRect.left) / game.cachedGameRect.width * 100;
                 const y = (e.pageY - parentRect.top) / game.cachedGameRect.height * 100;
@@ -1424,14 +1435,9 @@ function createElementHandle(element) {
                     element.removeAttribute("data-fithtml");
                     openElementInspector(element);
                 }
-            }
-            const mouseupEvent = () => {
-                document.removeEventListener("mouseup", mouseupEvent);
-                document.removeEventListener("mousemove", mousemoveEvent);
-            }
-            document.addEventListener("mouseup", mouseupEvent);
-            document.addEventListener("mousemove", mousemoveEvent);
-        }
+            },
+            threshold: 0
+        }).attach(ivert);
     }
     
     return handle;
@@ -1720,12 +1726,9 @@ class EditorGame extends Game {
                     if (openElements[name].clickzone.classList.contains("selected"))
                         deselectElement(openElements[name].element);
                 }
-                if (editMode === "select") {
-                    selectionMousedown(e);
-                }
             }
         }
-        editorInspector.onmousedown = (e) => {
+        editorInspector.onmousedown = () => {
             if (document.querySelector(".fh-editor .focused"))
                 document.querySelector(".fh-editor .focused").classList.remove("focused");
             editorInspector.classList.add("focused");
@@ -1735,6 +1738,58 @@ class EditorGame extends Game {
                 document.querySelector(".fh-editor .focused").classList.remove("focused");
             slidesContainer.classList.add("focused");
         }
+
+        // selection box
+        const selectionBox = fh_selection_box;
+        fh_selection_box.remove();
+        new DragHandler({
+            onmousedown: (e) => {
+                selectionBox.style.left = e.pageX + "px";
+                selectionBox.style.top = e.pageY + "px";
+                selectionBox.style.width = "";
+                selectionBox.style.height = "";
+            },
+            ondragstart: () => {
+                if (editMode !== "select") return;
+                editorOverlay.appendChild(selectionBox);
+            },
+            ondrag: (e) => {
+                if (editMode !== "select") return;
+                const rect = game.cachedGameRect;
+                var min = [
+                    (Math.min(e.mousedownPosition[0], e.pageX) - rect.left) / rect.width * 100, 
+                    (Math.min(e.mousedownPosition[1], e.pageY) - rect.top) / rect.height * 100
+                ];
+                var max = [
+                    (Math.max(e.mousedownPosition[0], e.pageX) - rect.left) / rect.width * 100, 
+                    (Math.max(e.mousedownPosition[1], e.pageY) - rect.top) / rect.height * 100,
+                ];
+                selectionBox.style.left = min[0] + "%";
+                selectionBox.style.top = min[1] + "%";
+                selectionBox.style.width = (max[0] - min[0]) + "%";
+                selectionBox.style.height = (max[1] - min[1]) + "%";
+
+                for (let name in openElements) {
+                    const data = openElements[name];
+                    const points = data.handle.points;
+                    if (
+                        min[0] < points[2][0] &&
+                        max[0] > points[0][0] &&
+                        min[1] < points[2][1] &&
+                        max[1] > points[0][1]
+                    ) {
+                        if (!data.clickzone.classList.contains("selected"))
+                            selectElement(openElements[name].element);
+                    } else {
+                        if (data.clickzone.classList.contains("selected"))
+                            deselectElement(openElements[name].element);
+                    }
+                }
+            },
+            ondragend: () => {
+                selectionBox.remove();
+            }
+        }).attach(gameContainer);
 
         fh_add_slide.onclick = () => addSlide();
         fh_select_mode.onclick = () => switchMode("select");
@@ -2065,13 +2120,8 @@ class EditorGame extends Game {
                 metaKey = false;
         })
 
-        editorOverlay.addEventListener("mousedown", e => {
-            if (editMode === "text") {
-                textmodeMousedown(e);
-            } else if (editMode === "doodle") {
-                doodlemodeMousedown(e);
-            }
-        })
+        initTextMode();
+        initDoodleMode();
 
         super(gameElement);
     }
@@ -2079,7 +2129,6 @@ class EditorGame extends Game {
     init(gameElement) {
         game = this;
         super.init(gameElement);
-        this.initDoodleSettings();
         window.addEventListener("load", () => {
             openElementInspector();
         }, { once: true });
@@ -2109,47 +2158,6 @@ class EditorGame extends Game {
         }
         createChildSlidePreviews(this.gameElement);
         refreshMedia();
-    }
-
-    async initDoodleSettings() {
-        doodleSettings = {
-            fill: await get('fill') || "none",
-            stroke: await get('stroke') || "black",
-            strokeWidth: await get('stroke-width') || 1
-        }
-
-        //https://stackoverflow.com/a/47355187/30103476
-        function standardize_color(str) {
-            var ctx = document.createElement("canvas").getContext("2d");
-            ctx.fillStyle = str;
-            return ctx.fillStyle;
-        }
-
-        for (const setting of ["fill", "stroke"]) {
-            const text = fh_doodle_tooltip.querySelector(`[name=${setting}]`);
-            const picker = fh_doodle_tooltip.querySelector(`[name=${setting}_picker]`);
-            text.value = picker.value = doodleSettings[setting];
-            text.oninput = function() {
-                var value = this.value.trim() === "" ? "none" : this.value;
-                set(setting, value); doodleSettings[setting] = value;
-                picker.value = standardize_color(value);
-            }
-            text.onchange = function() {
-                this.value = this.value.trim() === "" ? "none" : this.value;
-            }
-            picker.oninput = function() {
-                set(setting, this.value); doodleSettings[setting] = this.value;
-                text.value = this.value;
-            };
-        }
-        fh_doodle_tooltip.querySelector("[name=stroke-width]").value = doodleSettings.strokeWidth;
-        fh_doodle_tooltip.querySelector("[name=stroke-width]").oninput = function() {
-            set('stroke-width', Math.max(this.value, 1));
-            doodleSettings.strokeWidth = Math.max(this.value, 1);
-        };
-        fh_doodle_tooltip.querySelector("[name=stroke-width]").onchange = function() {
-            if (this.value < 1) this.value = 1;
-        };
     }
 
     onresize() {
