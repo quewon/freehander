@@ -1809,6 +1809,7 @@ class EditorGame extends Game {
             fh_media.click();
         }
         if ('showDirectoryPicker' in self) {
+            fh_media_reload_button.onclick = fh_media.click;
             fh_media_load_button.onclick = () => {
                 mediaFolder = null;
                 del('media');
