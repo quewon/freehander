@@ -75,6 +75,8 @@ function transform2d(element, x1, y1, x2, y2, x3, y3, x4, y4) {
     element.style.transform = t;
 }
 
+const isEditor = document.querySelector(".fh-editor");
+
 class Game {
     gameElement;
     currentSlide;
@@ -208,7 +210,7 @@ class Game {
             points[2][0] * this.cachedGameRect.width / 100, 
             points[2][1] * this.cachedGameRect.height / 100,
         );
-        if (!this.editorOverlay) {
+        if (!isEditor) {
             const svgs = element.querySelectorAll("svg");
             if (svgs.length > 0) {
                 element.style.transform = "";
@@ -217,6 +219,17 @@ class Game {
                     svg.offsetHeight;
                     svg.style.display = "";
                 }
+                const cover = document.createElement("div");
+                cover.className = "fh-svgload-cover";
+                element.after(cover);
+
+                const style = getComputedStyle(cover);
+                if (
+                    style.backgroundImage === "none" &&
+                    style.backgroundColor === "rgba(0, 0, 0, 0)"
+                )
+                    cover.style.background = "white";
+
                 requestAnimationFrame(() => {
                     requestAnimationFrame(() => {
                         transform2d(
@@ -230,6 +243,7 @@ class Game {
                             points[2][0] * this.cachedGameRect.width / 100, 
                             points[2][1] * this.cachedGameRect.height / 100,
                         );
+                        cover.remove();
                     })
                 })
             }
@@ -348,7 +362,7 @@ class Game {
             for (let s of slidesExited) {
                 if (s.dataset.onexit)
                     this.runScript(s.dataset.onexit, s);
-                if (!this.editorOverlay) {
+                if (!isEditor) {
                     for (let element of s.children) {
                         if (element.classList.contains("fh-element")) {
                             const media = element.querySelector("[data-autoplay]");
@@ -367,7 +381,7 @@ class Game {
                         this.runScript(element.dataset.onshow, element);
                     }
                 }
-                if (!this.editorOverlay) {
+                if (!isEditor) {
                     for (let element of s.children) {
                         if (element.classList.contains("fh-element")) {
                             const media = element.querySelector("[data-autoplay]");

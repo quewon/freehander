@@ -86,7 +86,6 @@ function selectionMousedown(e) {
     document.addEventListener("mouseup", mouseupEvent);
 }
 function doodlemodeMousedown(e) {
-    const tooltipShown = !fh_doodle_tooltip.classList.contains("hidden");
     fh_doodle_tooltip.classList.add("hidden");
 
     const padding = 5;
@@ -140,8 +139,6 @@ function doodlemodeMousedown(e) {
         path.setAttribute("d", d);
     }
     const mouseupEvent = () => {
-        if (tooltipShown)
-            fh_doodle_tooltip.classList.remove("hidden");
         if (canvasRect[2] === 0 && canvasRect[3] === 0) {
             deleteElement(element);
             return;

@@ -36,6 +36,11 @@ body, html {
 .fh-clickzone:active {
     border: 1px solid greenyellow;
 }
+.fh-svgload-cover {
+    position: absolute;
+    inset: 0;
+    background: inherit;
+}
 
 .fh-slide {
     position: absolute;
