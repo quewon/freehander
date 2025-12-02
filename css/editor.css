@@ -263,7 +263,7 @@ body {
     padding-left: 1.5em;
     word-break: break-all;
 }
-.fh-inspector > ul {
+#fh_folder_container > ul {
     padding-left: 0;
 }
 .fh-inspector summary:focus {
