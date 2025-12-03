@@ -17,11 +17,11 @@ function initShortcuts() {
             return;
         }
 
-        else if (e.key === "1")
+        else if (!metaKey && (e.key === "1" || e.code === "KeyS"))
             switchMode("select")
-        else if (e.key === "2")
+        else if (!metaKey && (e.key === "2" || e.code === "KeyT"))
             switchMode("text")
-        else if (e.key === "3")
+        else if (!metaKey && (e.key === "3" || e.code === "KeyD"))
             switchMode("doodle")
 
         else if (!metaKey && (e.key === "Delete" || e.key === "Backspace")) {

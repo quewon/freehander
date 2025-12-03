@@ -43,6 +43,7 @@ export class DragHandler {
             }
             document.addEventListener("mousemove", mousemoveEvent);
             document.addEventListener("mouseup", mouseupEvent);
+            e.preventDefault();
         }
     }
 

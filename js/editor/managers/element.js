@@ -259,6 +259,7 @@ function openElementInspector(element) {
             } else {
                 element.removeAttribute("data-fithtml");
             }
+            save();
         }
 
         nameInput = fh_element_inspector.querySelector("[name=rename]");

@@ -56,9 +56,9 @@ when you load a saved html file that contains imported media, it attempts to acc
 | action | shortcut |
 |-|-|
 | play | meta+P |
-| switch mode > select | 1 |
-| switch mode > text | 2 |
-| switch mode > doodle | 3 |
+| switch mode > select | 1 or S |
+| switch mode > text | 2 or T |
+| switch mode > doodle | 3 or D |
 | save | meta+S |
 | load | meta+L |
 | export | meta+E |
