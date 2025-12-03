@@ -184,4 +184,4 @@ function openMediaInspector() {
     fh_folder_container.appendChild(mediaFolder);
 }
 
-export { initMedia, createMediaFolder, refreshMedia, openMediaInspector }
+export { initMedia, createMediaFolder, refreshMedia, openMediaInspector, mediaFolder }

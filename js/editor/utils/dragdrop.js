@@ -5,7 +5,7 @@ export class DragHandler {
         this.ondrag = options.ondrag;
         this.ondragend = options.ondragend;
         this.threshold = options.threshold ?? 3;
-        
+
         this.eventListener = (e) => {
             if (e.button !== 0) return;
             const mousedownPosition = [e.pageX, e.pageY];

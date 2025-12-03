@@ -2,9 +2,9 @@
 
 function matrix_adjugate(m) {
     return [
-        m[4]*m[8]-m[5]*m[7], m[2]*m[7]-m[1]*m[8], m[1]*m[5]-m[2]*m[4],
-        m[5]*m[6]-m[3]*m[8], m[0]*m[8]-m[2]*m[6], m[2]*m[3]-m[0]*m[5],
-        m[3]*m[7]-m[4]*m[6], m[1]*m[6]-m[0]*m[7], m[0]*m[4]-m[1]*m[3]
+        m[4] * m[8] - m[5] * m[7], m[2] * m[7] - m[1] * m[8], m[1] * m[5] - m[2] * m[4],
+        m[5] * m[6] - m[3] * m[8], m[0] * m[8] - m[2] * m[6], m[2] * m[3] - m[0] * m[5],
+        m[3] * m[7] - m[4] * m[6], m[1] * m[6] - m[0] * m[7], m[0] * m[4] - m[1] * m[3]
     ];
 }
 
@@ -14,9 +14,9 @@ function matrix_multm(a, b) { // multiply two matrices
         for (var j = 0; j != 3; ++j) {
             var cij = 0;
             for (var k = 0; k != 3; ++k) {
-                cij += a[3*i + k]*b[3*k + j];
+                cij += a[3 * i + k] * b[3 * k + j];
             }
-            c[3*i + j] = cij;
+            c[3 * i + j] = cij;
         }
     }
     return c;
@@ -24,9 +24,9 @@ function matrix_multm(a, b) { // multiply two matrices
 
 function matrix_multv(m, v) { // multiply matrix and vector
     return [
-        m[0]*v[0] + m[1]*v[1] + m[2]*v[2],
-        m[3]*v[0] + m[4]*v[1] + m[5]*v[2],
-        m[6]*v[0] + m[7]*v[1] + m[8]*v[2]
+        m[0] * v[0] + m[1] * v[1] + m[2] * v[2],
+        m[3] * v[0] + m[4] * v[1] + m[5] * v[2],
+        m[6] * v[0] + m[7] * v[1] + m[8] * v[2]
     ];
 }
 
@@ -34,7 +34,7 @@ function basisToPoints(x1, y1, x2, y2, x3, y3, x4, y4) {
     var m = [
         x1, x2, x3,
         y1, y2, y3,
-        1,  1,  1
+        1, 1, 1
     ];
     var v = matrix_multv(matrix_adjugate(m), [x4, y4, 1]);
     return matrix_multm(m, [
@@ -61,13 +61,13 @@ function transform2d(element, x1, y1, x2, y2, x3, y3, x4, y4) {
         0, 0, x1, y1, w, 0, x2, y2, 0, h, x3, y3, w, h, x4, y4
     );
     for (var i = 0; i != 9; ++i)
-        t[i] = t[i]/t[8];
+        t[i] = t[i] / t[8];
     t = [
-            t[0], t[3], 0, t[6],
-            t[1], t[4], 0, t[7],
-            0   , 0   , 1, 0   ,
-            t[2], t[5], 0, t[8]
-        ];
+        t[0], t[3], 0, t[6],
+        t[1], t[4], 0, t[7],
+        0, 0, 1, 0,
+        t[2], t[5], 0, t[8]
+    ];
     t = "matrix3d(" + t.join(", ") + ")";
     element.style["-webkit-transform"] = t;
     element.style["-moz-transform"] = t;
@@ -106,7 +106,7 @@ class Game {
             }
             this.goto(slide);
         }
-        
+
         this.onresize();
     }
 
@@ -137,11 +137,11 @@ class Game {
                 clickzone.textContent = element.textContent;
                 clickzone.className = "fh-clickzone";
                 clickzone.setAttribute("name", element.getAttribute("name"));
-                
+
                 var points = this.createElementPointsArray(element);
                 var min = [Infinity, Infinity];
                 var max = [-Infinity, -Infinity];
-                for (let i=0; i<4; i++) {
+                for (let i = 0; i < 4; i++) {
                     let point = points[i];
                     min = [
                         Math.min(point[0], min[0]),
@@ -201,13 +201,13 @@ class Game {
         points = points || this.createElementPointsArray(element);
         transform2d(
             element,
-            points[0][0] * this.cachedGameRect.width / 100, 
+            points[0][0] * this.cachedGameRect.width / 100,
             points[0][1] * this.cachedGameRect.height / 100,
-            points[1][0] * this.cachedGameRect.width / 100, 
+            points[1][0] * this.cachedGameRect.width / 100,
             points[1][1] * this.cachedGameRect.height / 100,
-            points[3][0] * this.cachedGameRect.width / 100, 
+            points[3][0] * this.cachedGameRect.width / 100,
             points[3][1] * this.cachedGameRect.height / 100,
-            points[2][0] * this.cachedGameRect.width / 100, 
+            points[2][0] * this.cachedGameRect.width / 100,
             points[2][1] * this.cachedGameRect.height / 100,
         );
         if (!isEditor) {
@@ -222,7 +222,7 @@ class Game {
                 const cover = document.createElement("div");
                 cover.className = "fh-svgload-cover";
                 element.after(cover);
-                
+
                 var search = cover;
                 var computedBackgroundColor = getComputedStyle(search).backgroundColor;
                 while (computedBackgroundColor === 'rgba(0, 0, 0, 0)' || computedBackgroundColor === 'transparent') {
@@ -235,22 +235,22 @@ class Game {
                 }
                 var rgba = [255, 255, 255, 1];
                 if (computedBackgroundColor.indexOf("rgba(") === 0)
-                    rgba = computedBackgroundColor.slice(5,-1).split(",");
+                    rgba = computedBackgroundColor.slice(5, -1).split(",");
                 else if (computedBackgroundColor.indexOf("rgb(") === 0)
-                    rgba = [...computedBackgroundColor.slice(4,-1).split(","), 1];
+                    rgba = [...computedBackgroundColor.slice(4, -1).split(","), 1];
                 cover.style.backgroundColor = `rgba(${rgba[0]}, ${rgba[1]}, ${rgba[2]}, 1)`;
 
                 requestAnimationFrame(() => {
                     requestAnimationFrame(() => {
                         transform2d(
                             element,
-                            points[0][0] * this.cachedGameRect.width / 100, 
+                            points[0][0] * this.cachedGameRect.width / 100,
                             points[0][1] * this.cachedGameRect.height / 100,
-                            points[1][0] * this.cachedGameRect.width / 100, 
+                            points[1][0] * this.cachedGameRect.width / 100,
                             points[1][1] * this.cachedGameRect.height / 100,
-                            points[3][0] * this.cachedGameRect.width / 100, 
+                            points[3][0] * this.cachedGameRect.width / 100,
                             points[3][1] * this.cachedGameRect.height / 100,
-                            points[2][0] * this.cachedGameRect.width / 100, 
+                            points[2][0] * this.cachedGameRect.width / 100,
                             points[2][1] * this.cachedGameRect.height / 100,
                         );
                         cover.remove();
@@ -363,12 +363,12 @@ class Game {
                 slidesEntered.unshift(s);
                 s = s.parentElement;
             }
-            
+
             while (slidesExited[slidesExited.length - 1] === slidesEntered[0]) {
                 slidesExited.pop();
                 slidesEntered.shift();
             }
-            
+
             for (let s of slidesExited) {
                 if (s.dataset.onexit)
                     this.runScript(s.dataset.onexit, s);
@@ -440,7 +440,7 @@ class Game {
             }, seconds * 1000);
         })
     }
-    
+
     async s(seconds) {
         await this.seconds(seconds);
     }

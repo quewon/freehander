@@ -5,7 +5,7 @@ import { textDragHandler } from "./modes/text.js";
 import { selectDragHandler } from "./modes/select.js";
 
 import { clearHistory, save } from './utils/history.js';
-import { initMedia, refreshMedia } from "./managers/media.js";
+import { initMedia, refreshMedia, mediaFolder } from "./managers/media.js";
 import { initShortcuts, textareaKeydown } from "./utils/shortcuts.js";
 import { findSlidePreview, updateSlidePreview, updateSlidePreviewScale, reorderPreviews, clearSlidePreviews, createPreviewsFromElement, slidesContainer } from "./managers/slide.js";
 import { openElements, openElementInspector, selectElement, deselectAllElements, openElement } from './managers/element.js';

@@ -189,7 +189,7 @@ function initShortcuts() {
     })
 }
 
-function textareaKeydown (e) {
+function textareaKeydown(e) {
     if (e.code === "Tab") {
         const start = this.selectionStart;
         const end = this.selectionEnd;
