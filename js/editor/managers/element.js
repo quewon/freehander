@@ -377,14 +377,15 @@ function getElementTopLeft(element) {
     return getElementMinMax(element).min;
 }
 function setElementTopLeft(element, position) {
-    var mm = getElementMinMax(element);
-    var w = mm.max[0] - mm.min[0];
-    var h = mm.max[1] - mm.min[1];
+    const oldOrigin = getElementTopLeft(element);
+    var p = createElementPointsArray(element);
+    const x = position[0] - oldOrigin[0];
+    const y = position[1] - oldOrigin[1];
     updateElementPoints(element, [
-        [position[0], position[1]],
-        [position[0] + w, position[1]],
-        [position[0] + w, position[1] + h],
-        [position[0], position[1] + h]
+        [p[0][0] + x, p[0][1] + y],
+        [p[1][0] + x, p[1][1] + y],
+        [p[2][0] + x, p[2][1] + y],
+        [p[3][0] + x, p[3][1] + y]
     ]);
 }
 function getElementCenter(element) {
