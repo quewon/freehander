@@ -491,9 +491,6 @@ function createEditorClickzone(element) {
     var grabbedClickzones = [];
     var grabOffsets;
     var cancelClick = false;
-    var initialClick = false;
-    var doubleClick = false;
-    var doubleClickTimeout;
     var shiftOnMousedown;
 
     clickzone.onwheel = (e) => {
@@ -517,35 +514,12 @@ function createEditorClickzone(element) {
                 deselectElement(element);
             } else {
                 selectElement(element);
-
-                if (doubleClick) {
-                    openElementInspector(element);
-                    setTimeout(() => {
-                        const textarea = editorInspector.querySelector("textarea");
-                        if (textarea) {
-                            textarea.focus();
-                            textarea.selectionStart = textarea.selectionEnd = textarea.value.length;
-                        }
-                    }, 1);
-                    doubleClick = false;
-                }
             }
         }
     }
     new DragHandler({
         onmousedown: (e) => {
             if (editMode !== "select") return;
-            if (!initialClick) {
-                initialClick = true;
-                doubleClick = false;
-                doubleClickTimeout = setTimeout(() => {
-                    initialClick = false;
-                }, 500);
-            } else {
-                clearTimeout(doubleClickTimeout);
-                initialClick = false;
-                doubleClick = !cancelClick;
-            }
             cancelClick = false;
 
             if (!shiftKey && !clickzone.classList.contains("selected")) {
@@ -767,9 +741,13 @@ function initSelectionHandles() {
 
     var handleOffset;
     var shiftOnMousedown;
+    var cancelClick;
+
     new DragHandler({
         onmousedown: (e) => {
             if (editMode !== "select") return;
+            document.querySelector(":focus")?.blur();
+            cancelClick = false;
             const rect = game.cachedGameRect;
             const x = (e.pageX - rect.left) / rect.width * 100;
             const y = (e.pageY - rect.top) / rect.height * 100;
@@ -779,16 +757,17 @@ function initSelectionHandles() {
                     bringElementToFront(element);
             }
             const origin = getPointsTopLeft(selectionHandles.points);
-            handleOffset = [ origin[0] - x, origin[1] - y ];
+            handleOffset = [origin[0] - x, origin[1] - y];
             focusGameContainer();
             e.stopPropagation();
         },
         ondrag: (e) => {
             if (editMode !== "select") return;
+            cancelClick = Math.abs(e.mousedownPosition[0] - e.pageX) + Math.abs(e.mousedownPosition[1] - e.pageY) > 3;
             const rect = game.cachedGameRect;
             const x = (e.pageX - rect.left) / rect.width * 100;
             const y = (e.pageY - rect.top) / rect.height * 100;
-            setSelectionHandlesTopLeft([ handleOffset[0] + x, handleOffset[1] + y ]);
+            setSelectionHandlesTopLeft([handleOffset[0] + x, handleOffset[1] + y]);
         },
         ondragend: (e) => {
             if (
@@ -800,6 +779,18 @@ function initSelectionHandles() {
         },
         threshold: 0
     }).attach(dragzone);
+    dragzone.onclick = () => {
+        if (!cancelClick && selectionHandles.elements.length === 1) {
+            openElementInspector(selectionHandles.elements[0]);
+            setTimeout(() => {
+                const textarea = editorInspector.querySelector("textarea");
+                if (textarea) {
+                    textarea.focus();
+                    textarea.selectionStart = textarea.selectionEnd = textarea.value.length;
+                }
+            }, 1);
+        }
+    }
 
     for (let i = 0; i < 4; i++) {
         // edges
@@ -826,6 +817,7 @@ function initSelectionHandles() {
         new DragHandler({
             onmousedown: (e) => {
                 if (editMode !== "select") return;
+                document.querySelector(":focus")?.blur();
                 const rect = svg.getBoundingClientRect();
                 const x = (e.pageX - rect.left) / game.cachedGameRect.width * 100;
                 const y = (e.pageY - rect.top) / game.cachedGameRect.height * 100;
@@ -913,6 +905,7 @@ function initSelectionHandles() {
             },
             ondrag: (e) => {
                 if (editMode !== "select") return;
+                document.querySelector(":focus")?.blur();
                 const parentRect = svg.getBoundingClientRect();
                 const x = (e.pageX - parentRect.left) / game.cachedGameRect.width * 100;
                 const y = (e.pageY - parentRect.top) / game.cachedGameRect.height * 100;
