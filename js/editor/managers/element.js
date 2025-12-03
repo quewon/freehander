@@ -597,7 +597,6 @@ function createEditorClickzone(element) {
                 const el = openElements[name].element;
                 if (!shiftKey) {
                     bringElementToFront(el);
-                    save();
                 }
                 const center = getElementCenter(el);
                 grabOffsets.push([
@@ -637,7 +636,7 @@ function createEditorClickzone(element) {
                     deleteElement(element);
                 }
             }
-            if (cancelClick)
+            if (cancelClick || !shiftKey)
                 save();
         },
         threshold: 0
@@ -785,7 +784,6 @@ function initSelectionHandles() {
             for (const element of selectionHandles.elements) {
                 if (!shiftKey) {
                     bringElementToFront(element);
-                    save();
                 }
                 const rect = game.cachedGameRect;
                 const x = (e.pageX - rect.left) / rect.width * 100;
@@ -810,6 +808,14 @@ function initSelectionHandles() {
                 setElementCenter(element, [offset[0] + x, offset[1] + y]);
             }
             updateSelectionHandles();
+        },
+        ondragend: (e) => {
+            if (
+                !shiftKey ||
+                Math.abs(e.mousedownPosition[0] - e.pageX) + Math.abs(e.mousedownPosition[1] - e.pageY) > 0
+            ) {
+                save();
+            }
         },
         threshold: 0
     }).attach(dragzone);
@@ -885,6 +891,13 @@ function initSelectionHandles() {
                     }
                 }
             },
+            ondragend: (e) => {
+                if (
+                    Math.abs(e.mousedownPosition[0] - e.pageX) + Math.abs(e.mousedownPosition[1] - e.pageY) > 0
+                ) {
+                    save();
+                }
+            },
             threshold: 0
         }).attach(iedge);
     }
@@ -936,6 +949,13 @@ function initSelectionHandles() {
                         if (selectionHandles.elements.length === 1)
                             openElementInspector(element);
                     }
+                }
+            },
+            ondragend: (e) => {
+                if (
+                    Math.abs(e.mousedownPosition[0] - e.pageX) + Math.abs(e.mousedownPosition[1] - e.pageY) > 0
+                ) {
+                    save();
                 }
             },
             threshold: 0
