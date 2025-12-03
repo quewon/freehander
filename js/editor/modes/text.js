@@ -1,6 +1,6 @@
 import { DragHandler } from '../utils/dragdrop.js';
 import { game, editMode, switchMode, editorOverlay } from '../editor.js';
-import { openElements, deselectElement, selectElement, openElementInspector, updateElementPoints, setElementHTML, createElement, deleteElement } from '../managers/element.js';
+import { openElements, deselectElement, selectElement, openElementInspector, updateElementPoints, setElementHTML, createElement, deleteElement, updateSelectionHandles } from '../managers/element.js';
 
 fh_text_mode.onclick = () => switchMode("text");
 
@@ -73,6 +73,7 @@ const textDragHandler = new DragHandler({
                     [x2, y2],
                     [x1, y2]
                 ]);
+                updateSelectionHandles();
             }
             if (element.innerHTML.trim() === "") {
                 htmlInput.style.borderColor = "red";

@@ -3,8 +3,10 @@ import { shiftKey } from '../utils/shortcuts.js';
 import { DragHandler } from '../utils/dragdrop.js';
 import { save } from '../utils/history.js';
 import { updateSlidePreview, findSlidePreview, reorderPreviews } from './slide.js';
+import { general2DProjection, matrix_multv } from '../../matrix.js';
 
 var openElements = {};
+var selectionHandles;
 
 function createElement(x, y, w, h, content) {
     content = content || "";
@@ -71,7 +73,6 @@ function deleteElement(element) {
             const name = element.getAttribute("name");
             const data = openElements[name];
             data.clickzone.remove();
-            data.handle.svg.remove();
             delete openElements[name];
         }
         element.remove();
@@ -127,7 +128,6 @@ function renameElement(element, name, preview) {
         if (element.parentElement === game.currentSlide) {
             const data = openElements[element.getAttribute("name")];
             data.clickzone.setAttribute("name", name);
-            data.handle.svg.setAttribute("name", name);
             delete openElements[element.getAttribute("name")];
             openElements[name] = data;
         }
@@ -165,7 +165,7 @@ function deselectElement(element) {
     if (element.parentElement === game.currentSlide) {
         const data = openElements[element.getAttribute("name")];
         data.clickzone.classList.remove("selected");
-        data.handle.svg.style.display = "none";
+        updateSelectionHandles();
         if (fh_inspect_element.classList.contains("selected"))
             openElementInspector();
     }
@@ -174,7 +174,7 @@ function selectElement(element) {
     if (element.parentElement === game.currentSlide) {
         const data = openElements[element.getAttribute("name")];
         data.clickzone.classList.add("selected");
-        data.handle.svg.style.display = "block";
+        updateSelectionHandles();
         if (fh_inspect_element.classList.contains("selected"))
             openElementInspector(element);
     }
@@ -182,8 +182,7 @@ function selectElement(element) {
 function openElement(element) {
     openElements[element.getAttribute("name")] = {
         element: element,
-        clickzone: createEditorClickzone(element),
-        handle: createElementHandle(element),
+        clickzone: createEditorClickzone(element)
     }
     updateElementPoints(element, createElementPointsArray(element));
 }
@@ -347,38 +346,13 @@ function updateElementPoints(element, points) {
         ]
     }
 
-    if (openElements[element.getAttribute("name")]) {
+    if (element.parentElement === game.currentSlide) {
         const data = openElements[element.getAttribute("name")];
-
-        data.handle.points = points;
-
         const clickzone = data.clickzone;
         clickzone.style.left = min[0] + "%";
         clickzone.style.top = min[1] + "%";
         clickzone.style.width = (max[0] - min[0]) + "%";
         clickzone.style.height = (max[1] - min[1]) + "%";
-
-        for (let i = 0; i < 4; i++) {
-            const point = points[i];
-            const vvert = data.handle.visibleVertices[i];
-            const ivert = data.handle.invisibleVertices[i];
-            vvert.setAttribute("cx", point[0] + "%");
-            vvert.setAttribute("cy", point[1] + "%");
-            ivert.setAttribute("cx", point[0] + "%");
-            ivert.setAttribute("cy", point[1] + "%");
-
-            const npoint = points[i >= 3 ? 0 : i + 1];
-            const vedge = data.handle.visibleEdges[i];
-            const iedge = data.handle.invisibleEdges[i];
-            vedge.setAttribute("x1", point[0] + "%");
-            vedge.setAttribute("y1", point[1] + "%");
-            vedge.setAttribute("x2", npoint[0] + "%");
-            vedge.setAttribute("y2", npoint[1] + "%");
-            iedge.setAttribute("x1", point[0] + "%");
-            iedge.setAttribute("y1", point[1] + "%");
-            iedge.setAttribute("x2", npoint[0] + "%");
-            iedge.setAttribute("y2", npoint[1] + "%");
-        }
     }
 
     element.dataset.x1 = points[0][0];
@@ -394,12 +368,7 @@ function updateElementPoints(element, points) {
     updateSlidePreview(element.parentElement);
 }
 function getElementMinMax(element) {
-    var points;
-    if (element.parentElement === game.currentSlide) {
-        points = openElements[element.getAttribute("name")].handle.points;
-    } else {
-        points = createElementPointsArray(element);
-    }
+    var points = createElementPointsArray(element);
     var min = [Infinity, Infinity];
     var max = [-Infinity, -Infinity];
     for (let i = 0; i < 4; i++) {
@@ -416,8 +385,7 @@ function getElementMinMax(element) {
     return { min, max };
 }
 function getElementTopLeft(element) {
-    var mm = getElementMinMax(element);
-    return mm.min;
+    return getElementMinMax(element).min;
 }
 function setElementTopLeft(element, position) {
     var mm = getElementMinMax(element);
@@ -431,12 +399,7 @@ function setElementTopLeft(element, position) {
     ]);
 }
 function getElementCenter(element) {
-    var points;
-    if (element.parentElement === game.currentSlide) {
-        points = openElements[element.getAttribute("name")].handle.points;
-    } else {
-        points = createElementPointsArray(element);
-    }
+    var points = createElementPointsArray(element);
     var c = [0, 0];
     for (let i = 0; i < 4; i++) {
         c[0] += points[i][0];
@@ -449,12 +412,7 @@ function getElementCenter(element) {
 }
 function setElementCenter(element, position) {
     const c = getElementCenter(element);
-    var p;
-    if (element.parentElement === game.currentSlide) {
-        p = openElements[element.getAttribute("name")].handle.points;
-    } else {
-        p = createElementPointsArray(element);
-    }
+    var p = createElementPointsArray(element);
     const x = position[0] - c[0];
     const y = position[1] - c[1];
     updateElementPoints(element, [
@@ -468,8 +426,8 @@ function sendElementToBack(element) {
     element.parentElement.prepend(element);
     if (element.parentElement === game.currentSlide) {
         const data = openElements[element.getAttribute("name")];
-        const svg = data.handle.svg;
-        svg.parentElement.prepend(svg);
+        // const svg = data.handle.svg;
+        // svg.parentElement.prepend(svg);
         const clickzone = data.clickzone;
         clickzone.parentElement.prepend(clickzone);
     }
@@ -480,8 +438,8 @@ function bringElementToFront(element) {
         const data = openElements[element.getAttribute("name")];
         const clickzone = data.clickzone;
         clickzone.parentElement.appendChild(clickzone);
-        const svg = data.handle.svg;
-        svg.parentElement.appendChild(svg);
+        // const svg = data.handle.svg;
+        // svg.parentElement.appendChild(svg);
     }
 }
 function isHTML(string) {
@@ -561,7 +519,7 @@ function createEditorClickzone(element) {
     var doubleClickTimeout;
 
     clickzone.onwheel = (e) => {
-        var points = openElements[element.getAttribute("name")].handle.points;
+        var points = createElementPointsArray(element);
         const rect = game.cachedGameRect;
         const anchor = [
             (e.pageX - rect.left) / rect.width * 100,
@@ -661,11 +619,13 @@ function createEditorClickzone(element) {
                 const offset = grabOffsets[i];
                 setElementCenter(element, [offset[0] + x, offset[1] + y]);
             }
+            if (clickzone.classList.contains("selected"))
+                updateSelectionHandles();
         },
         ondragend: () => {
             if (editMode !== "select") return;
             if (element.parentElement) {
-                const points = openElements[element.getAttribute("name")].handle.points;
+                const points = createElementPointsArray(element);
                 if (!(
                     points[0][0] < 100 &&
                     points[2][0] > 0 &&
@@ -689,22 +649,169 @@ function createEditorClickzone(element) {
 
     return clickzone;
 }
-function createElementHandle(element) {
-    const name = element.getAttribute("name");
-
+function updateSelectionHandles() {
+    var selectedClickzones = editorOverlay.querySelectorAll(".fh-editor-clickzone.selected");
+    if (selectedClickzones.length > 0) {
+        editorOverlay.appendChild(selectionHandles.svg);
+        var min = [Infinity, Infinity];
+        var max = [-Infinity, -Infinity];
+        selectionHandles.elements = [...selectedClickzones].map(clickzone => {
+            const element = openElements[clickzone.getAttribute("name")].element;
+            const mm = getElementMinMax(element);
+            if (mm.min[0] < min[0]) min[0] = mm.min[0];
+            if (mm.min[1] < min[1]) min[1] = mm.min[1];
+            if (mm.max[0] > max[0]) max[0] = mm.max[0];
+            if (mm.max[1] > max[1]) max[1] = mm.max[1];
+            return element;
+        })
+        if (selectionHandles.elements.length > 1) {
+            selectionHandles.points = [
+                [min[0], min[1]],
+                [max[0], min[1]],
+                [max[0], max[1]],
+                [min[0], max[1]]
+            ]
+            selectionHandles.originalPoints = [
+                min[0], min[1],
+                max[0], min[1],
+                max[0], max[1],
+                min[0], max[1]
+            ]
+            selectionHandles.originalElementPoints = [];
+            for (const element of selectionHandles.elements) {
+                selectionHandles.originalElementPoints.push(
+                    createElementPointsArray(element)
+                )
+            }
+        } else {
+            selectionHandles.points = createElementPointsArray(selectionHandles.elements[0]);
+        }
+        updateSelectionTransform();
+    } else {
+        selectionHandles.svg.remove();
+    }
+}
+function updateSelectionTransform() {
+    var min = [Infinity, Infinity];
+    var max = [-Infinity, -Infinity];
+    for (let i = 0; i < 4; i++) {
+        const p = selectionHandles.points[i];
+        const np = i < 3 ? selectionHandles.points[i + 1] : selectionHandles.points[0];
+        selectionHandles.visibleVertices[i].setAttribute("cx", p[0] + "%");
+        selectionHandles.visibleVertices[i].setAttribute("cy", p[1] + "%");
+        selectionHandles.invisibleVertices[i].setAttribute("cx", p[0] + "%");
+        selectionHandles.invisibleVertices[i].setAttribute("cy", p[1] + "%");
+        selectionHandles.visibleEdges[i].setAttribute("x1", p[0] + "%");
+        selectionHandles.visibleEdges[i].setAttribute("y1", p[1] + "%");
+        selectionHandles.invisibleEdges[i].setAttribute("x1", p[0] + "%");
+        selectionHandles.invisibleEdges[i].setAttribute("y1", p[1] + "%");
+        selectionHandles.visibleEdges[i].setAttribute("x2", np[0] + "%");
+        selectionHandles.visibleEdges[i].setAttribute("y2", np[1] + "%");
+        selectionHandles.invisibleEdges[i].setAttribute("x2", np[0] + "%");
+        selectionHandles.invisibleEdges[i].setAttribute("y2", np[1] + "%");
+        if (p[0] < min[0]) min[0] = p[0];
+        if (p[1] < min[1]) min[1] = p[1];
+        if (p[0] > max[0]) max[0] = p[0];
+        if (p[1] > max[1]) max[1] = p[1];
+    }
+    const p = selectionHandles.points.map((point) => {
+        return [
+            point[0] / 100 * game.cachedGameRect.width,
+            point[1] / 100 * game.cachedGameRect.height
+        ]
+    });
+    selectionHandles.dragzone.setAttribute("d", `M${p[0][0]} ${p[0][1]} L${p[1][0]} ${p[1][1]} L${p[2][0]} ${p[2][1]} L${p[3][0]} ${p[3][1]}`);
+    if (selectionHandles.elements.length === 1) {
+        const element = selectionHandles.elements[0];
+        updateElementPoints(element, selectionHandles.points);
+        const clickzone = openElements[element.getAttribute("name")]?.clickzone;
+        if (clickzone) {
+            clickzone.style.left = min[0] + "%";
+            clickzone.style.top = min[1] + "%";
+            clickzone.style.width = (max[0] - min[0]) + "%";
+            clickzone.style.height = (max[1] - min[1]) + "%";
+        }
+    } else {
+        const matrix = general2DProjection(
+            selectionHandles.originalPoints[0], selectionHandles.originalPoints[1],
+            selectionHandles.points[0][0], selectionHandles.points[0][1],
+            selectionHandles.originalPoints[2], selectionHandles.originalPoints[3],
+            selectionHandles.points[1][0], selectionHandles.points[1][1],
+            selectionHandles.originalPoints[4], selectionHandles.originalPoints[5],
+            selectionHandles.points[2][0], selectionHandles.points[2][1],
+            selectionHandles.originalPoints[6], selectionHandles.originalPoints[7],
+            selectionHandles.points[3][0], selectionHandles.points[3][1]
+        );
+        for (let i = 0; i < selectionHandles.elements.length; i++) {
+            var originalPoints = selectionHandles.originalElementPoints[i];
+            var transformedPoints = originalPoints.map((point) => {
+                const v = matrix_multv(matrix, [point[0], point[1], 1]);
+                return [v[0] / v[2], v[1] / v[2]];
+            });
+            updateElementPoints(selectionHandles.elements[i], transformedPoints);
+        }
+    }
+}
+function initSelectionHandles() {
     const svg = document.createElementNS("http://www.w3.org/2000/svg", "svg");
     svg.setAttribute("class", "fh-element-handle");
-    svg.setAttribute("name", name);
-    editorOverlay.appendChild(svg);
 
-    const handle = {
+    var visibleVertices = [];
+    var invisibleVertices = [];
+    var visibleEdges = [];
+    var invisibleEdges = [];
+    var dragzone = document.createElementNS("http://www.w3.org/2000/svg", "path");
+    dragzone.setAttribute("fill", "transparent");
+    dragzone.setAttribute("stroke", "none");
+    svg.appendChild(dragzone);
+
+    selectionHandles = {
         svg: svg,
-        points: createElementPointsArray(element),
-        visibleVertices: [],
-        invisibleVertices: [],
-        visibleEdges: [],
-        invisibleEdges: []
-    };
+        elements: [],
+        points: [],
+        visibleVertices: visibleVertices,
+        invisibleVertices: invisibleVertices,
+        visibleEdges: visibleEdges,
+        invisibleEdges: invisibleEdges,
+        dragzone: dragzone
+    }
+
+    var grabOffsets;
+    new DragHandler({
+        onmousedown: (e) => {
+            if (editMode !== "select") return;
+            grabOffsets = [];
+            for (const element of selectionHandles.elements) {
+                if (!shiftKey) {
+                    bringElementToFront(element);
+                    save();
+                }
+                const rect = game.cachedGameRect;
+                const x = (e.pageX - rect.left) / rect.width * 100;
+                const y = (e.pageY - rect.top) / rect.height * 100;
+                const center = getElementCenter(element);
+                grabOffsets.push([
+                    center[0] - x,
+                    center[1] - y
+                ]);
+            }
+            focusGameContainer();
+            e.stopPropagation();
+        },
+        ondrag: (e) => {
+            if (editMode !== "select") return;
+            const rect = game.cachedGameRect;
+            const x = (e.pageX - rect.left) / rect.width * 100;
+            const y = (e.pageY - rect.top) / rect.height * 100;
+            for (let i = 0; i < grabOffsets.length; i++) {
+                const element = selectionHandles.elements[i];
+                const offset = grabOffsets[i];
+                setElementCenter(element, [offset[0] + x, offset[1] + y]);
+            }
+            updateSelectionHandles();
+        },
+        threshold: 0
+    }).attach(dragzone);
 
     for (let i = 0; i < 4; i++) {
         // edges
@@ -713,13 +820,13 @@ function createElementHandle(element) {
         vedge.setAttribute("stroke-width", "var(--handle-stroke-width)");
         vedge.setAttribute("stroke", "var(--handle-color)");
         svg.appendChild(vedge);
-        handle.visibleEdges.push(vedge);
+        visibleEdges.push(vedge);
 
         const iedge = document.createElementNS("http://www.w3.org/2000/svg", "line");
         iedge.setAttribute("stroke-width", "15");
         iedge.setAttribute("stroke", "transparent");
         svg.appendChild(iedge);
-        handle.invisibleEdges.push(iedge);
+        invisibleEdges.push(iedge);
 
         iedge.onmouseover = () => {
             vedge.setAttribute("stroke", "var(--handle-hover-color)");
@@ -736,12 +843,12 @@ function createElementHandle(element) {
                 const y = (e.pageY - rect.top) / game.cachedGameRect.height * 100;
                 edgeOffsets = [
                     [
-                        handle.points[i][0] - x,
-                        handle.points[i][1] - y
+                        selectionHandles.points[i][0] - x,
+                        selectionHandles.points[i][1] - y
                     ],
                     [
-                        handle.points[i >= 3 ? 0 : i + 1][0] - x,
-                        handle.points[i >= 3 ? 0 : i + 1][1] - y
+                        selectionHandles.points[i >= 3 ? 0 : i + 1][0] - x,
+                        selectionHandles.points[i >= 3 ? 0 : i + 1][1] - y
                     ]
                 ];
                 focusGameContainer();
@@ -754,21 +861,27 @@ function createElementHandle(element) {
                 const y = (e.pageY - rect.top) / game.cachedGameRect.height * 100;
                 const n = i >= 3 ? 0 : i + 1;
                 if (shiftKey) {
-                    if (Math.abs(handle.points[i][0] - handle.points[n][0]) > Math.abs(handle.points[i][1] - handle.points[n][1])) {
-                        handle.points[i][1] = y + edgeOffsets[0][1];
-                        handle.points[n][1] = y + edgeOffsets[1][1];
+                    if (
+                        Math.abs(selectionHandles.points[i][0] - selectionHandles.points[n][0]) >
+                        Math.abs(selectionHandles.points[i][1] - selectionHandles.points[n][1])
+                    ) {
+                        selectionHandles.points[i][1] = y + edgeOffsets[0][1];
+                        selectionHandles.points[n][1] = y + edgeOffsets[1][1];
                     } else {
-                        handle.points[i][0] = x + edgeOffsets[0][0];
-                        handle.points[n][0] = x + edgeOffsets[1][0];
+                        selectionHandles.points[i][0] = x + edgeOffsets[0][0];
+                        selectionHandles.points[n][0] = x + edgeOffsets[1][0];
                     }
                 } else {
-                    handle.points[i] = [x + edgeOffsets[0][0], y + edgeOffsets[0][1]];
-                    handle.points[n] = [x + edgeOffsets[1][0], y + edgeOffsets[1][1]];
+                    selectionHandles.points[i] = [x + edgeOffsets[0][0], y + edgeOffsets[0][1]];
+                    selectionHandles.points[n] = [x + edgeOffsets[1][0], y + edgeOffsets[1][1]];
                 }
-                updateElementPoints(element, handle.points);
-                if (element.dataset.fithtml) {
-                    element.removeAttribute("data-fithtml");
-                    openElementInspector(element);
+                updateSelectionTransform();
+                for (let element of selectionHandles.elements) {
+                    if (element.dataset.fithtml) {
+                        element.removeAttribute("data-fithtml");
+                        if (selectionHandles.elements.length === 1)
+                            openElementInspector(element);
+                    }
                 }
             },
             threshold: 0
@@ -784,13 +897,13 @@ function createElementHandle(element) {
         vvert.setAttribute("stroke", "var(--handle-color)");
         vvert.setAttribute("stroke-width", "var(--handle-stroke-width)");
         svg.appendChild(vvert);
-        handle.visibleVertices.push(vvert);
+        visibleVertices.push(vvert);
 
         const ivert = document.createElementNS("http://www.w3.org/2000/svg", "circle");
         ivert.setAttribute("r", "10");
         ivert.setAttribute("fill", "transparent");
         svg.appendChild(ivert);
-        handle.invisibleVertices.push(ivert);
+        invisibleVertices.push(ivert);
 
         ivert.onmouseover = () => {
             vvert.setAttribute("stroke", "var(--handle-hover-color)");
@@ -808,24 +921,25 @@ function createElementHandle(element) {
                 const parentRect = svg.getBoundingClientRect();
                 const x = (e.pageX - parentRect.left) / game.cachedGameRect.width * 100;
                 const y = (e.pageY - parentRect.top) / game.cachedGameRect.height * 100;
-                handle.points[i] = [x, y];
+                selectionHandles.points[i] = [x, y];
                 if (shiftKey) {
                     var prev = i - 1 < 0 ? 3 : i - 1;
                     var next = i + 1 > 3 ? 0 : i + 1;
-                    handle.points[(i % 2 == 0 ? prev : next)][0] = handle.points[i][0];
-                    handle.points[(i % 2 == 0 ? next : prev)][1] = handle.points[i][1];
+                    selectionHandles.points[(i % 2 == 0 ? prev : next)][0] = selectionHandles.points[i][0];
+                    selectionHandles.points[(i % 2 == 0 ? next : prev)][1] = selectionHandles.points[i][1];
                 }
-                updateElementPoints(element, handle.points);
-                if (element.dataset.fithtml) {
-                    element.removeAttribute("data-fithtml");
-                    openElementInspector(element);
+                updateSelectionTransform();
+                for (let element of selectionHandles.elements) {
+                    if (element.dataset.fithtml) {
+                        element.removeAttribute("data-fithtml");
+                        if (selectionHandles.elements.length === 1)
+                            openElementInspector(element);
+                    }
                 }
             },
             threshold: 0
         }).attach(ivert);
     }
-
-    return handle;
 }
 function createElementPointsArray(element) {
     if (!element.dataset.x1) {
@@ -852,5 +966,10 @@ function deselectAllElements() {
         deselectElement(openElements[name].element);
     }
 }
+function deleteSelectedElements() {
+    for (let clickzone of editorOverlay.querySelectorAll(".fh-editor-clickzone.selected")) {
+        deleteElement(openElements[clickzone.getAttribute("name")].element);
+    }
+}
 
-export { openElements, createElement, deleteElement, renameElement, setElementHTML, selectElement, deselectElement, deselectAllElements, openElement, openElementInspector, updateElementPoints, getElementMinMax, getElementTopLeft, getElementCenter, setElementTopLeft, setElementCenter, sendElementToBack, bringElementToFront, isHTML, pasteHTML, createEditorClickzone, createElementHandle, createElementPointsArray };
+export { openElements, createElement, deleteElement, deleteSelectedElements, renameElement, setElementHTML, selectElement, deselectElement, deselectAllElements, openElement, openElementInspector, updateElementPoints, getElementMinMax, getElementTopLeft, getElementCenter, setElementTopLeft, setElementCenter, sendElementToBack, bringElementToFront, isHTML, pasteHTML, createEditorClickzone, initSelectionHandles, updateSelectionHandles, createElementPointsArray };

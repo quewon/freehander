@@ -1,7 +1,7 @@
 import { game, switchMode, playGame, saveDocument, loadDocument, exportDocument, editorOverlay, editorInspector } from '../editor.js';
 import { save, undo, redo } from '../utils/history.js';
-import { slidesContainer, addSlide } from '../managers/slide.js';
-import { deleteElement, pasteHTML, selectElement, deselectElement, openElementInspector, openElements } from '../managers/element.js';
+import { slidesContainer, addSlide, deleteSelectedSlides } from '../managers/slide.js';
+import { deleteElement, pasteHTML, selectElement, deselectElement, openElementInspector, openElements, deleteSelectedElements } from '../managers/element.js';
 
 var shiftKey = false;
 var metaKey = false;
@@ -24,16 +24,12 @@ function initShortcuts() {
         else if (e.key === "3")
             switchMode("doodle")
 
-        else if (e.key === "Delete" || e.key === "Backspace") {
+        else if (!metaKey && (e.key === "Delete" || e.key === "Backspace")) {
             if (slidesContainer.classList.contains("focused")) {
-                for (let preview of slidesContainer.querySelectorAll(".fh-slide-preview-container.selected")) {
-                    deleteElement(game.getElementAtPath(preview.dataset.path));
-                }
+                deleteSelectedSlides();
                 save();
             } else if (!editorInspector.classList.contains("focused")) {
-                for (let clickzone of editorOverlay.querySelectorAll(".fh-editor-clickzone.selected")) {
-                    deleteElement(openElements[clickzone.getAttribute("name")].element);
-                }
+                deleteSelectedElements();
                 save();
             }
         }

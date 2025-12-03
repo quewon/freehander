@@ -1,5 +1,5 @@
 import { DragHandler } from '../utils/dragdrop.js';
-import { renameElement, selectElement } from './element.js';
+import { deleteElement, renameElement, selectElement } from './element.js';
 import { game } from '../editor.js';
 import { save } from '../utils/history.js';
 
@@ -355,5 +355,10 @@ function createPreviewsFromElement(element) {
         }
     }
 }
+function deleteSelectedSlides() {
+    for (let preview of slidesContainer.querySelectorAll(".fh-slide-preview-container.selected")) {
+        deleteElement(game.getElementAtPath(preview.dataset.path));
+    }
+}
 
-export { slidesContainer, addSlide, findSlidePreview, createSlidePreview, togglePreviewCollapse, getParentPreview, updateSlidePreview, updateSlidePreviewScale, reorderPreviews, clearSlidePreviews, createPreviewsFromElement };
+export { slidesContainer, addSlide, findSlidePreview, createSlidePreview, togglePreviewCollapse, getParentPreview, updateSlidePreview, updateSlidePreviewScale, reorderPreviews, clearSlidePreviews, createPreviewsFromElement, deleteSelectedSlides };

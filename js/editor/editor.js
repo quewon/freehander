@@ -8,7 +8,7 @@ import { clearHistory, save } from './utils/history.js';
 import { initMedia, refreshMedia, mediaFolder } from "./managers/media.js";
 import { initShortcuts, textareaKeydown } from "./utils/shortcuts.js";
 import { findSlidePreview, updateSlidePreview, updateSlidePreviewScale, reorderPreviews, clearSlidePreviews, createPreviewsFromElement, slidesContainer } from "./managers/slide.js";
-import { openElements, openElementInspector, selectElement, deselectAllElements, openElement } from './managers/element.js';
+import { openElements, openElementInspector, selectElement, deselectAllElements, openElement, initSelectionHandles } from './managers/element.js';
 
 var game;
 var editMode = "select";
@@ -35,6 +35,9 @@ function switchMode(modename) {
 async function createGameFile() {
     var game_css = await fetch("/css/game.css").then(res => res.text());
     var game_module = await fetch("/js/game.js").then(res => res.text());
+    var matrix_module = await fetch("/js/matrix.js").then(res => res.text());
+    matrix_module = matrix_module.replace("export { matrix_adjugate, matrix_multm, matrix_multv, basisToPoints, general2DProjection, transform2d };", "");
+    game_module = game_module.replace("import { transform2d } from './matrix.js';", matrix_module);
     game_module = game_module.replace("export { Game };", "");
 
     var html = await fetch("/template.html").then(res => res.text());
@@ -210,6 +213,7 @@ class EditorGame extends Game {
         textDragHandler.attach(gameContainer);
         doodleDragHandler.attach(gameContainer);
         initMedia();
+        initSelectionHandles();
         initShortcuts();
 
         super(gameElement);
@@ -246,7 +250,7 @@ class EditorGame extends Game {
             for (let slide of game.gameElement.querySelectorAll(".fh-slide")) {
                 slide.classList.add("open");
             }
-            for (let element of document.querySelectorAll(".fh-element")) {
+            for (let element of game.gameElement.querySelectorAll(".fh-slide > .fh-element")) {
                 game.updateTransform(element);
             }
             for (let slide of game.gameElement.querySelectorAll(".fh-slide")) {
