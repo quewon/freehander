@@ -8,6 +8,7 @@ each element is (text, doodle, image) can be positioned and skewed.
 - to manipulate a vertex or edge, simply click and drag it.
 - hold shift for more control over these manipulations.
 - inspect or double click an element to edit its html content.
+- right click an element to send it to the back. (shift click to prevent changing the element's depth position.)
 
 ### slide
 

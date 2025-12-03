@@ -4,6 +4,7 @@ import { DragHandler } from '../utils/dragdrop.js';
 import { save } from '../utils/history.js';
 import { updateSlidePreview, findSlidePreview, reorderPreviews } from './slide.js';
 import { general2DProjection, matrix_multv } from '../../matrix.js';
+import { getPointsMinMax, getPointsCenter, getPointsTopLeft } from '../utils/rect.js';
 
 var openElements = {};
 var selectionHandles;
@@ -259,6 +260,7 @@ function openElementInspector(element) {
             } else {
                 element.removeAttribute("data-fithtml");
             }
+            updateSelectionHandles();
             save();
         }
 
@@ -369,21 +371,7 @@ function updateElementPoints(element, points) {
     updateSlidePreview(element.parentElement);
 }
 function getElementMinMax(element) {
-    var points = createElementPointsArray(element);
-    var min = [Infinity, Infinity];
-    var max = [-Infinity, -Infinity];
-    for (let i = 0; i < 4; i++) {
-        let point = points[i];
-        min = [
-            Math.min(point[0], min[0]),
-            Math.min(point[1], min[1])
-        ]
-        max = [
-            Math.max(point[0], max[0]),
-            Math.max(point[1], max[1])
-        ]
-    }
-    return { min, max };
+    return getPointsMinMax(createElementPointsArray(element));
 }
 function getElementTopLeft(element) {
     return getElementMinMax(element).min;
@@ -400,16 +388,7 @@ function setElementTopLeft(element, position) {
     ]);
 }
 function getElementCenter(element) {
-    var points = createElementPointsArray(element);
-    var c = [0, 0];
-    for (let i = 0; i < 4; i++) {
-        c[0] += points[i][0];
-        c[1] += points[i][1];
-    }
-    return [
-        c[0] / 4,
-        c[1] / 4
-    ]
+    return getPointsCenter(createElementPointsArray(element));
 }
 function setElementCenter(element, position) {
     const c = getElementCenter(element);
@@ -427,8 +406,6 @@ function sendElementToBack(element) {
     element.parentElement.prepend(element);
     if (element.parentElement === game.currentSlide) {
         const data = openElements[element.getAttribute("name")];
-        // const svg = data.handle.svg;
-        // svg.parentElement.prepend(svg);
         const clickzone = data.clickzone;
         clickzone.parentElement.prepend(clickzone);
     }
@@ -439,8 +416,6 @@ function bringElementToFront(element) {
         const data = openElements[element.getAttribute("name")];
         const clickzone = data.clickzone;
         clickzone.parentElement.appendChild(clickzone);
-        // const svg = data.handle.svg;
-        // svg.parentElement.appendChild(svg);
     }
 }
 function isHTML(string) {
@@ -518,6 +493,7 @@ function createEditorClickzone(element) {
     var initialClick = false;
     var doubleClick = false;
     var doubleClickTimeout;
+    var shiftOnMousedown;
 
     clickzone.onwheel = (e) => {
         var points = createElementPointsArray(element);
@@ -592,16 +568,16 @@ function createEditorClickzone(element) {
             }
 
             grabOffsets = [];
+            shiftOnMousedown = shiftKey;
             for (let clickzone of grabbedClickzones) {
                 const name = clickzone.getAttribute("name");
                 const el = openElements[name].element;
-                if (!shiftKey) {
+                if (!shiftKey)
                     bringElementToFront(el);
-                }
-                const center = getElementCenter(el);
+                const origin = getElementTopLeft(el);
                 grabOffsets.push([
-                    center[0] - x,
-                    center[1] - y
+                    origin[0] - x,
+                    origin[1] - y
                 ]);
             }
             focusGameContainer();
@@ -617,7 +593,7 @@ function createEditorClickzone(element) {
                 const clickzone = grabbedClickzones[i];
                 const element = openElements[clickzone.getAttribute("name")].element;
                 const offset = grabOffsets[i];
-                setElementCenter(element, [offset[0] + x, offset[1] + y]);
+                setElementTopLeft(element, [offset[0] + x, offset[1] + y]);
             }
             if (clickzone.classList.contains("selected"))
                 updateSelectionHandles();
@@ -636,7 +612,7 @@ function createEditorClickzone(element) {
                     deleteElement(element);
                 }
             }
-            if (cancelClick || !shiftKey)
+            if (cancelClick || !shiftOnMousedown)
                 save();
         },
         threshold: 0
@@ -752,6 +728,14 @@ function updateSelectionTransform() {
         }
     }
 }
+function setSelectionHandlesTopLeft(origin) {
+    const oldOrigin = getPointsTopLeft(selectionHandles.points);
+    for (let point of selectionHandles.points) {
+        point[0] = origin[0] + (point[0] - oldOrigin[0]);
+        point[1] = origin[1] + (point[1] - oldOrigin[1]);
+    }
+    updateSelectionTransform();
+}
 function initSelectionHandles() {
     const svg = document.createElementNS("http://www.w3.org/2000/svg", "svg");
     svg.setAttribute("class", "fh-element-handle");
@@ -776,24 +760,21 @@ function initSelectionHandles() {
         dragzone: dragzone
     }
 
-    var grabOffsets;
+    var handleOffset;
+    var shiftOnMousedown;
     new DragHandler({
         onmousedown: (e) => {
             if (editMode !== "select") return;
-            grabOffsets = [];
+            const rect = game.cachedGameRect;
+            const x = (e.pageX - rect.left) / rect.width * 100;
+            const y = (e.pageY - rect.top) / rect.height * 100;
+            shiftOnMousedown = shiftKey;
             for (const element of selectionHandles.elements) {
-                if (!shiftKey) {
+                if (!shiftKey)
                     bringElementToFront(element);
-                }
-                const rect = game.cachedGameRect;
-                const x = (e.pageX - rect.left) / rect.width * 100;
-                const y = (e.pageY - rect.top) / rect.height * 100;
-                const center = getElementCenter(element);
-                grabOffsets.push([
-                    center[0] - x,
-                    center[1] - y
-                ]);
             }
+            const origin = getPointsTopLeft(selectionHandles.points);
+            handleOffset = [ origin[0] - x, origin[1] - y ];
             focusGameContainer();
             e.stopPropagation();
         },
@@ -802,16 +783,11 @@ function initSelectionHandles() {
             const rect = game.cachedGameRect;
             const x = (e.pageX - rect.left) / rect.width * 100;
             const y = (e.pageY - rect.top) / rect.height * 100;
-            for (let i = 0; i < grabOffsets.length; i++) {
-                const element = selectionHandles.elements[i];
-                const offset = grabOffsets[i];
-                setElementCenter(element, [offset[0] + x, offset[1] + y]);
-            }
-            updateSelectionHandles();
+            setSelectionHandlesTopLeft([ handleOffset[0] + x, handleOffset[1] + y ]);
         },
         ondragend: (e) => {
             if (
-                !shiftKey ||
+                !shiftOnMousedown ||
                 Math.abs(e.mousedownPosition[0] - e.pageX) + Math.abs(e.mousedownPosition[1] - e.pageY) > 0
             ) {
                 save();
