@@ -631,8 +631,6 @@ function updateSelectionHandles() {
     if (selectedClickzones.length > 0) {
         for (let i = 0; i < 4; i++) {
             selectionHandles.invisibleVertices[i].onmouseleave();
-            selectionHandles.invisibleVertices[i].onmouseleave();
-            selectionHandles.invisibleEdges[i].onmouseleave();
             selectionHandles.invisibleEdges[i].onmouseleave();
         }
         editorOverlay.appendChild(selectionHandles.svg);
