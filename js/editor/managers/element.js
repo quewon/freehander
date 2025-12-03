@@ -629,6 +629,12 @@ function createEditorClickzone(element) {
 function updateSelectionHandles() {
     var selectedClickzones = editorOverlay.querySelectorAll(".fh-editor-clickzone.selected");
     if (selectedClickzones.length > 0) {
+        for (let i = 0; i < 4; i++) {
+            selectionHandles.invisibleVertices[i].onmouseleave();
+            selectionHandles.invisibleVertices[i].onmouseleave();
+            selectionHandles.invisibleEdges[i].onmouseleave();
+            selectionHandles.invisibleEdges[i].onmouseleave();
+        }
         editorOverlay.appendChild(selectionHandles.svg);
         var min = [Infinity, Infinity];
         var max = [-Infinity, -Infinity];

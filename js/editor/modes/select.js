@@ -1,6 +1,6 @@
 import { DragHandler } from '../utils/dragdrop.js';
 import { game, switchMode, editMode, editorOverlay } from '../editor.js';
-import { openElements, selectElement, deselectElement, createElementPointsArray } from '../managers/element.js';
+import { openElements, selectElement, deselectElement, createElementPointsArray, getElementMinMax } from '../managers/element.js';
 
 fh_select_mode.onclick = () => switchMode("select");
 
@@ -36,12 +36,12 @@ const selectDragHandler = new DragHandler({
 
         for (let name in openElements) {
             const data = openElements[name];
-            const points = createElementPointsArray(data.element);
+            const mm = getElementMinMax(data.element);
             if (
-                min[0] < points[2][0] &&
-                max[0] > points[0][0] &&
-                min[1] < points[2][1] &&
-                max[1] > points[0][1]
+                min[0] < mm.max[0] &&
+                max[0] > mm.min[0] &&
+                min[1] < mm.max[1] &&
+                max[1] > mm.min[1]
             ) {
                 if (!data.clickzone.classList.contains("selected"))
                     selectElement(data.element);
