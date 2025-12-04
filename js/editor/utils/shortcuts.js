@@ -1,6 +1,6 @@
 import { game, switchMode, playGame, saveDocument, loadDocument, exportDocument, editorOverlay, editorInspector } from '../editor.js';
 import { save, undo, redo } from '../utils/history.js';
-import { slidesContainer, addSlide, deleteSelectedSlides } from '../managers/slide.js';
+import { slidesContainer, addSlide, deleteSelectedSlides, getParentPreview } from '../managers/slide.js';
 import { deleteElement, pasteHTML, selectElement, deselectElement, openElementInspector, openElements, deleteSelectedElements } from '../managers/element.js';
 
 var shiftKey = false;
@@ -77,17 +77,47 @@ function initShortcuts() {
                     break;
                 case "ArrowUp":
                 case "ArrowLeft":
-                    const prev = selected.previousElementSibling;
-                    if (prev) {
-                        game.goto(prev.dataset.path);
+                    var prev = selected.previousElementSibling;
+                    while (prev) {
+                        var underCollapsed = false;
+                        var parent = getParentPreview(prev);
+                        while (parent) {
+                            if (parent.classList.contains("collapsed")) {
+                                underCollapsed = true;
+                                break;
+                            }
+                            parent = getParentPreview(parent);
+                        }
+                        if (underCollapsed) {
+                            prev = prev.previousElementSibling;
+                        } else {
+                            break;
+                        }
                     }
+                    if (prev)
+                        game.goto(prev.dataset.path);
                     break;
                 case "ArrowDown":
                 case "ArrowRight":
-                    const next = selected.nextElementSibling;
-                    if (next) {
-                        game.goto(next.dataset.path);
+                    var next = selected.nextElementSibling;
+                    while (next) {
+                        var underCollapsed = false;
+                        var parent = getParentPreview(next);
+                        while (parent) {
+                            if (parent.classList.contains("collapsed")) {
+                                underCollapsed = true;
+                                break;
+                            }
+                            parent = getParentPreview(parent);
+                        }
+                        if (underCollapsed) {
+                            next = next.nextElementSibling;
+                        } else {
+                            break;
+                        }
                     }
+                    if (next)
+                        game.goto(next.dataset.path);
                     break;
             }
         }
