@@ -1,11 +1,16 @@
 @import url('https://fonts.googleapis.com/css2?family=Atkinson+Hyperlegible+Mono:ital,wght@0,200..800;1,200..800&display=swap');
 
-body {
-    background: black;
-    color: white;
+:root {
     color-scheme: dark;
-    --slightgray: rgba(255,255,255,.2);
+    --background: black;
+    --primary: white;
     --accent: #a2f624;
+    --hover: rgba(255,255,255,.2);
+}
+
+body {
+    background: var(--background);
+    color: var(--primary);
 }
 
 .fh-editor {
@@ -60,6 +65,7 @@ body {
 }
 
 .fh-slides-container {
+    color-scheme: initial;
     box-sizing: border-box;
     display: flex;
     flex-direction: column;
@@ -97,8 +103,8 @@ body {
 .fh-slide-preview-bg {
     position: relative;
     width: 100%;
-    background: white;
-    color: black;
+    background: var(--primary);
+    color: var(--background);
     border: 1px solid gray;
     box-sizing: border-box;
     pointer-events: none;
@@ -112,13 +118,16 @@ body {
     width: 100%;
     height: 100%;
 }
+.fh-slide-preview iframe {
+    background: var(--accent);
+}
 
 .fh-slide-preview-container.selected  {
     background: gray;
 }
 .focused .fh-slide-preview-container.selected {
     background: var(--accent);
-    color: black;
+    color: var(--background);
 }
 .fh-slide-preview-container.dragging,
 .fh-slide-preview-container.dragging.selected {
@@ -155,12 +164,13 @@ body {
     border: 1px solid transparent;
     background: none;
     padding: 0;
+    color: inherit;
 }
 .fh-toolbar button:hover,
 .fh-inspector button:hover,
 #help-menu button:hover,
 .help-menu-button:hover {
-    background: var(--slightgray);
+    background: var(--hover);
 }
 .fh-toolbar button:active,
 .fh-inspector button:active,
@@ -177,7 +187,7 @@ body {
 }
 .fh-toolbar button.selected {
     background: var(--accent);
-    color: black;
+    color: var(--background);
 }
 
 .fh-game-container {
@@ -185,13 +195,14 @@ body {
     position: relative;
     overflow: hidden;
 }
-.fh-game-container .fh-game {
+.fh-game {
+    color-scheme: initial;
     background: white;
     color: black;
 }
 .fh-editor-overlay {
     color-scheme: normal;
-    color: black;
+    color: var(--background);
     position: absolute;
     top: 50%;
     left: 50%;
@@ -214,7 +225,7 @@ body {
 .fh-editor-clickzone:hover,
 .fh-editor-clickzone.selected {
     border-color: gray;
-    background-color: var(--slightgray);
+    background-color: var(--hover);
 }
 .fh-editor-clickzone:hover::after {
     content: attr(name);
@@ -222,8 +233,8 @@ body {
     top: 100%;
     left: 0;
     margin-top: 5px;
-    background: white;
-    color: black;
+    background: var(--primary);
+    color: var(--background);
     font-family: var(--editor-font);
 }
 .fh-element-handle {
@@ -296,7 +307,7 @@ body {
 }
 .fh-inspector .file:hover,
 .fh-inspector .folder summary:hover {
-    background-color: var(--slightgray);
+    background-color: var(--hover);
 }
 
 #help-menu a {
@@ -310,7 +321,7 @@ body {
     margin-top: 1em;
     transform: translate(-50%, 0);
     z-index: 2;
-    background: black;
+    background: var(--background);
     border: 1px dotted gray;
     padding: .75em .5em;
 }

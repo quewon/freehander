@@ -68,8 +68,13 @@ async function playGame() {
         asset.setAttribute("src", referenceElement.dataset.url);
     }
     var blob = await createGameFile();
-    var url = URL.createObjectURL(blob);
-    window.open(url, "_blank").focus();
+    // var url = URL.createObjectURL(blob);
+    // window.open(url, "_blank").focus();
+
+    const newWindow = window.open();
+    newWindow.document.open();
+    newWindow.document.write(await blob.text());
+    newWindow.document.close();
 }
 async function saveDocument() {
     for (let asset of game.gameElement.querySelectorAll("[data-filepath]")) {
@@ -169,6 +174,7 @@ function focusGameContainer() {
 class EditorGame extends Game {
     constructor(gameElement) {
         gameContainer.onmousedown = (e) => {
+            document.querySelector(":focus")?.blur();
             focusGameContainer();
             if (e.target === gameContainer || e.target === editorOverlay) {
                 deselectAllElements();

@@ -5,6 +5,7 @@ import { save } from '../utils/history.js';
 
 const slidesContainer = document.querySelector(".fh-slides-container");
 slidesContainer.onmousedown = () => {
+    document.querySelector(":focus")?.blur();
     if (document.querySelector(".fh-editor .focused"))
         document.querySelector(".fh-editor .focused").classList.remove("focused");
     slidesContainer.classList.add("focused");
@@ -237,6 +238,12 @@ function updateSlidePreview(slide) {
     var preview = findSlidePreview(slide)?.querySelector(".fh-slide-preview");
     if (preview) {
         preview.innerHTML = slide.innerHTML;
+        for (const iframe of preview.querySelectorAll("iframe")) {
+            iframe.src = "";
+        }
+        for (const media of preview.querySelectorAll("[autoplay]")) {
+            media.removeAttribute("autoplay");
+        }
     }
 }
 function updateSlidePreviewScale(preview) {
@@ -340,7 +347,13 @@ function reorderPreviews() {
             togglePreviewCollapse(parent);
         }
         selectElement(getSlide(selectedPreview));
-        game.goto(game.currentSlide);
+        
+        for (const slide of game.gameElement.querySelectorAll(".fh-slide.open")) {
+            game.exitSlide(slide);
+        }
+        const path = game.getPath(game.currentSlide);
+        game.currentSlide = null;
+        game.goto(path);
     }
 }
 function clearSlidePreviews() {

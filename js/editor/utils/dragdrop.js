@@ -49,9 +49,11 @@ export class DragHandler {
 
     attach(element) {
         element.addEventListener("mousedown", this.eventListener);
+        return this;
     }
 
     detach(element) {
         element.removeEventListener("mousedown", this.eventListener);
+        return this;
     }
 }

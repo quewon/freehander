@@ -253,6 +253,39 @@ class Game {
         return "/" + path;
     }
 
+    exitSlide(slide) {
+        if (slide.dataset.onexit)
+            this.runScript(slide.dataset.onexit, slide);
+        for (let element of slide.querySelectorAll("[src]")) {
+            const src = element.getAttribute("src");
+            if (src.trim() !== "") {
+                element.setAttribute("data-src", src);
+                element.setAttribute("src", "");
+            }
+        }
+        for (let media of slide.querySelectorAll("audio, video")) {
+            media.pause();
+        }
+    }
+
+    enterSlide(slide) {
+        if (slide.dataset.onenter)
+            this.runScript(slide.dataset.onenter, slide);
+        for (let element of slide.children) {
+            if (!element.classList.contains("hidden") && element.classList.contains("fh-element") && element.dataset.onshow) {
+                this.runScript(element.dataset.onshow, element);
+            }
+        }
+        for (let element of slide.querySelectorAll("[data-src]")) {
+            const src = element.getAttribute("data-src");
+            if (src.trim() !== "")
+                element.setAttribute("src", src);
+        }
+        for (let media of slide.querySelectorAll("audio[autoplay], video[autoplay]")) {
+            media.play();
+        }
+    }
+
     goto(path) {
         for (let slide of this.gameElement.querySelectorAll(".fh-slide.open")) {
             slide.classList.remove("open");
@@ -295,37 +328,10 @@ class Game {
             }
 
             for (let s of slidesExited) {
-                if (s.dataset.onexit)
-                    this.runScript(s.dataset.onexit, s);
-                if (!isEditor) {
-                    for (let element of s.children) {
-                        if (element.classList.contains("fh-element")) {
-                            const media = element.querySelector("[data-autoplay]");
-                            if (media) {
-                                media.pause();
-                            }
-                        }
-                    }
-                }
+                this.exitSlide(s);
             }
             for (let s of slidesEntered) {
-                if (s.dataset.onenter)
-                    this.runScript(s.dataset.onenter, s);
-                for (let element of s.children) {
-                    if (!element.classList.contains("hidden") && element.classList.contains("fh-element") && element.dataset.onshow) {
-                        this.runScript(element.dataset.onshow, element);
-                    }
-                }
-                if (!isEditor) {
-                    for (let element of s.children) {
-                        if (element.classList.contains("fh-element")) {
-                            const media = element.querySelector("[data-autoplay]");
-                            if (media && media.dataset.autoplay.toLowerCase() === "true") {
-                                media.play();
-                            }
-                        }
-                    }
-                }
+                this.enterSlide(s);
             }
         }
 

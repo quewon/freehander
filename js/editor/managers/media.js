@@ -1,4 +1,5 @@
-import { game, editorInspector } from '../editor.js';
+import { game, editorInspector, editMode, switchMode } from '../editor.js';
+import { createElement, updateElementPoints, selectElement, startSelectionDrag } from './element.js';
 import { get, set, del } from '../lib/idb-keyval.js';
 import { loadAssetFolder } from "../utils/folder.js";
 
@@ -94,9 +95,9 @@ function createMediaFolder(files) {
                 })
                 html = `<img alt="" data-filepath="${file.dataset.filepath}" />`;
             } else if (type === "video") {
-                html = `<video data-autoplay="true"><source data-filepath="${filepath}" type="${format}"></video>`;
+                html = `<video autoplay loop><source data-filepath="${filepath}" type="${format}"></video>`;
             } else if (type === "audio") {
-                html = `<audio data-autoplay="true" controls><source data-filepath="${filepath}" type="${format}"></audio>`;
+                html = `<audio autoplay loop controls><source data-filepath="${filepath}" type="${format}"></audio>`;
             } else if (type === "text") {
                 html = file.querySelector("[name=text]").textContent;
             }
@@ -145,8 +146,8 @@ function createMediaFolder(files) {
                 ]);
             }
 
-            const clickzone = openElements[element.getAttribute("name")].clickzone;
-            clickzone.onmousedown(e);
+            selectElement(element);
+            startSelectionDrag(e);
         }
     }
 

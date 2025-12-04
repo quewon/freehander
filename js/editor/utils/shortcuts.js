@@ -13,6 +13,41 @@ function initShortcuts() {
         else if (e.key === "Meta" || e.key === "Ctrl")
             metaKey = true;
 
+        if (metaKey) {
+            switch (e.code) {
+                case "KeyP":
+                    playGame();
+                    e.preventDefault();
+                    break;
+                case "KeyS":
+                    saveDocument();
+                    e.preventDefault();
+                    break;
+                case "KeyL":
+                    loadDocument();
+                    e.preventDefault();
+                    break;
+                case "KeyE":
+                    exportDocument();
+                    e.preventDefault();
+                    break;
+                case "KeyM":
+                    if (!fh_media_inspector.classList.contains("hidden")) {
+                        fh_media_reload_button.click();
+                    } else {
+                        fh_media.click();
+                    }
+                    e.preventDefault();
+                    break;
+                case "KeyI":
+                    if (!e.altKey) {
+                        openElementInspector();
+                        e.preventDefault();
+                    }
+                    break;
+            }
+        }
+
         if (e.target.tagName === "INPUT" || e.target.tagName === "TEXTAREA") {
             return;
         }
@@ -143,36 +178,6 @@ function initShortcuts() {
                         selectElement(openElements[name].element);
                     }
                     e.preventDefault();
-                    break;
-                case "KeyP":
-                    playGame();
-                    e.preventDefault();
-                    break;
-                case "KeyS":
-                    saveDocument();
-                    e.preventDefault();
-                    break;
-                case "KeyL":
-                    loadDocument();
-                    e.preventDefault();
-                    break;
-                case "KeyE":
-                    exportDocument();
-                    e.preventDefault();
-                    break;
-                case "KeyM":
-                    if (!fh_media_inspector.classList.contains("hidden")) {
-                        fh_media_reload_button.click();
-                    } else {
-                        fh_media.click();
-                    }
-                    e.preventDefault();
-                    break;
-                case "KeyI":
-                    if (!e.altKey) {
-                        openElementInspector();
-                        e.preventDefault();
-                    }
                     break;
             }
         }

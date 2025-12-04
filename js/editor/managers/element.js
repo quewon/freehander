@@ -2,6 +2,7 @@ import { game, editorOverlay, editorInspector, editMode, focusGameContainer } fr
 import { shiftKey } from '../utils/shortcuts.js';
 import { DragHandler } from '../utils/dragdrop.js';
 import { save } from '../utils/history.js';
+import { mediaFolder } from './media.js';
 import { updateSlidePreview, findSlidePreview, reorderPreviews } from './slide.js';
 import { general2DProjection, matrix_multv } from '../../matrix.js';
 import { getPointsMinMax, getPointsCenter, getPointsTopLeft } from '../utils/rect.js';
@@ -510,11 +511,7 @@ function createEditorClickzone(element) {
     }
     clickzone.onmouseup = (e) => {
         if (!cancelClick && editMode === "select" && e.button === 0) {
-            if (shiftKey && clickzone.classList.contains("selected")) {
-                deselectElement(element);
-            } else {
-                selectElement(element);
-            }
+            selectElement(element);
         }
     }
     new DragHandler({
@@ -715,6 +712,9 @@ function setSelectionHandlesTopLeft(origin) {
     }
     updateSelectionTransform();
 }
+function startSelectionDrag(e) {
+    selectionHandles.dragHandler.eventListener.bind(selectionHandles.dragHandler)(e);
+}
 function initSelectionHandles() {
     const svg = document.createElementNS("http://www.w3.org/2000/svg", "svg");
     svg.setAttribute("class", "fh-element-handle");
@@ -736,14 +736,30 @@ function initSelectionHandles() {
         invisibleVertices: invisibleVertices,
         visibleEdges: visibleEdges,
         invisibleEdges: invisibleEdges,
-        dragzone: dragzone
+        dragzone: dragzone,
+        dragHandler: null
     }
 
     var handleOffset;
     var shiftOnMousedown;
     var cancelClick;
 
-    new DragHandler({
+    dragzone.onwheel = (e) => {
+        var points = selectionHandles.points;
+        const rect = game.cachedGameRect;
+        const anchor = [
+            (e.pageX - rect.left) / rect.width * 100,
+            (e.pageY - rect.top) / rect.height * 100
+        ]
+        const scale = 1 + (e.deltaY / 1000);
+        for (let point of points) {
+            point[0] = anchor[0] + (point[0] - anchor[0]) * scale;
+            point[1] = anchor[1] + (point[1] - anchor[1]) * scale;
+        }
+        updateSelectionTransform();
+        e.preventDefault();
+    }
+    selectionHandles.dragHandler = new DragHandler({
         onmousedown: (e) => {
             if (editMode !== "select") return;
             document.querySelector(":focus")?.blur();
@@ -770,11 +786,41 @@ function initSelectionHandles() {
             setSelectionHandlesTopLeft([handleOffset[0] + x, handleOffset[1] + y]);
         },
         ondragend: (e) => {
+            if (!(
+                selectionHandles.points[0][0] < 100 &&
+                selectionHandles.points[2][0] > 0 &&
+                selectionHandles.points[0][1] < 100 &&
+                selectionHandles.points[2][0] > 0
+            )) {
+                console.log("out of bounds selection deleted.");
+                deleteSelectedElements();
+                save();
+                return;
+            }
             if (
                 !shiftOnMousedown ||
                 Math.abs(e.mousedownPosition[0] - e.pageX) + Math.abs(e.mousedownPosition[1] - e.pageY) > 0
             ) {
                 save();
+            } else if (shiftOnMousedown) {
+                const rect = game.cachedGameRect;
+                for (const element of selectionHandles.elements) {
+                    var mm = getElementMinMax(element);
+                    mm.min = [
+                        mm.min[0] / 100 * rect.width,
+                        mm.min[1] / 100 * rect.height
+                    ]
+                    mm.max = [
+                        mm.max[0] / 100 * rect.width,
+                        mm.max[1] / 100 * rect.height
+                    ]
+                    const x = e.pageX - rect.left;
+                    const y = e.pageY - rect.top;
+                    if (x >= mm.min[0] && x <= mm.max[0] && y >= mm.min[1] && y <= mm.max[1]) {
+                        deselectElement(element);
+                        break;
+                    }
+                }
             }
         },
         threshold: 0
@@ -967,4 +1013,4 @@ function deleteSelectedElements() {
     }
 }
 
-export { openElements, createElement, deleteElement, deleteSelectedElements, renameElement, setElementHTML, selectElement, deselectElement, deselectAllElements, openElement, openElementInspector, updateElementPoints, getElementMinMax, getElementTopLeft, getElementCenter, setElementTopLeft, setElementCenter, sendElementToBack, bringElementToFront, isHTML, pasteHTML, createEditorClickzone, initSelectionHandles, updateSelectionHandles, createElementPointsArray };
+export { openElements, createElement, deleteElement, deleteSelectedElements, renameElement, setElementHTML, selectElement, deselectElement, deselectAllElements, openElement, openElementInspector, updateElementPoints, getElementMinMax, getElementTopLeft, getElementCenter, setElementTopLeft, setElementCenter, sendElementToBack, bringElementToFront, isHTML, pasteHTML, createEditorClickzone, initSelectionHandles, updateSelectionHandles, startSelectionDrag, createElementPointsArray };
