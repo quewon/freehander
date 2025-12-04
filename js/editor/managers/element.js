@@ -144,7 +144,7 @@ function renameElement(element, name, preview) {
     }
 }
 function resetFit(element) {
-    const origin = getElementCenter(element);
+    const origin = getElementTopLeft(element);
     element.removeAttribute("data-x1");
     element.removeAttribute("data-y1");
     element.removeAttribute("data-x2");
@@ -154,7 +154,7 @@ function resetFit(element) {
     element.removeAttribute("data-x4");
     element.removeAttribute("data-y4");
     updateElementPoints(element, createElementPointsArray(element));
-    setElementCenter(element, origin);
+    setElementTopLeft(element, origin);
 }
 function setElementHTML(element, html) {
     element.innerHTML = html;
