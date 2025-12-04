@@ -234,7 +234,6 @@ class EditorGame extends Game {
 
         const state = localStorage.getItem("savestate");
         if (state) {
-            console.log(state);
             document.querySelector(".fh-game").outerHTML = state;
         }
         window.onbeforeunload = () => {
@@ -292,6 +291,7 @@ class EditorGame extends Game {
     }
 
     goto(path) {
+        const previousSlide = game.currentSlide;
         var selectedElements = [];
         for (let name in openElements) {
             if (openElements[name].clickzone.classList.contains("selected")) {
@@ -309,7 +309,7 @@ class EditorGame extends Game {
         for (let element of game.currentSlide.children) {
             if (element.classList.contains("fh-element")) {
                 openElement(element);
-                if (selectedElements.includes(element))
+                if (previousSlide === game.currentSlide && selectedElements.includes(element))
                     selectElement(element);
             }
         }

@@ -34,9 +34,9 @@ path syntax is important. relative paths (e.g. "slide1/element1") start searchin
 
 styling is done with css.
 
-everything inside the `@scope { }` block contains the styles within the given slide (and its elements & subslides).
+everything inside the `@scope { }` block contains the styles within the given slide (and its elements & subslides). within a @scope  block, `:scope` can be used as a selector for the given slide.
 
-within a `@scope { }` block, `:scope` can be used as a selector for the given slide.
+note: although @scope works on many major browsers, current and older versions of firefox don't support it! if you want to support these browsers, you can instead put all of your styling code into the topmost slide, outside of a @scope block.
 
 ### play, load, save, export
 

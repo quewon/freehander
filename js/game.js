@@ -120,7 +120,7 @@ class Game {
         ]
     }
 
-    updateTransform(element, points) {
+    updateTransform(element, points, ignoreMedia) {
         if (!this.cachedGameRect) return;
         
         points = points || this.createElementPointsArray(element);
@@ -135,7 +135,12 @@ class Game {
             points[2][0] * this.cachedGameRect.width / 100,
             points[2][1] * this.cachedGameRect.height / 100,
         );
-        if (!isEditor) {
+        if (!ignoreMedia) {
+            for (const media of element.querySelectorAll("[src]")) {
+                media.onload = media.onloadeddata = () => { this.updateTransform(element, null, true) };
+            }
+        }
+        if (!isEditor && !ignoreMedia) {
             const svgs = element.querySelectorAll("svg");
             if (svgs.length > 0) {
                 element.style.transform = "";
@@ -353,13 +358,6 @@ class Game {
             for (let element of document.querySelectorAll(".fh-slide.open > .fh-element")) {
                 this.updateTransform(element);
             }
-            requestAnimationFrame(() => {
-                requestAnimationFrame(() => {
-                    for (let element of document.querySelectorAll(".fh-slide.open > .fh-element")) {
-                        this.updateTransform(element);
-                    }
-                })
-            })
         }
     }
 

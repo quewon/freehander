@@ -507,11 +507,12 @@ function createEditorClickzone(element) {
 
     var grabbedClickzones = [];
     var grabOffsets;
+    var handleOffset;
     var cancelClick = false;
     var shiftOnMousedown;
 
     clickzone.onwheel = (e) => {
-        var points = createElementPointsArray(element);
+        var points = selectionHandles.elements.includes(element) ? selectionHandles.points : createElementPointsArray(element);
         const rect = game.cachedGameRect;
         const anchor = [
             (e.pageX - rect.left) / rect.width * 100,
@@ -522,7 +523,11 @@ function createEditorClickzone(element) {
             point[0] = anchor[0] + (point[0] - anchor[0]) * scale;
             point[1] = anchor[1] + (point[1] - anchor[1]) * scale;
         }
-        updateElementPoints(element, points);
+        if (selectionHandles.elements.includes(element)) {
+            updateSelectionTransform();
+        } else {
+            updateElementPoints(element, points);
+        }
         e.preventDefault();
     }
     clickzone.onmouseup = (e) => {
@@ -568,6 +573,10 @@ function createEditorClickzone(element) {
                     origin[1] - y
                 ]);
             }
+            if (selectionHandles.elements.includes(element)) {
+                const origin = getPointsTopLeft(selectionHandles.points);
+                handleOffset = [origin[0] - x, origin[1] - y];
+            }
             focusGameContainer();
             e.stopPropagation();
         },
@@ -583,8 +592,8 @@ function createEditorClickzone(element) {
                 const offset = grabOffsets[i];
                 setElementTopLeft(element, [offset[0] + x, offset[1] + y]);
             }
-            if (clickzone.classList.contains("selected"))
-                updateSelectionHandles();
+            if (selectionHandles.elements.includes(element))
+                setSelectionHandlesTopLeft([handleOffset[0] + x, handleOffset[1] + y]);
         },
         ondragend: () => {
             if (editMode !== "select") return;
@@ -688,7 +697,7 @@ function updateSelectionTransform() {
             point[1] / 100 * game.cachedGameRect.height
         ]
     });
-    selectionHandles.dragzone.setAttribute("d", `M${p[0][0]} ${p[0][1]} L${p[1][0]} ${p[1][1]} L${p[2][0]} ${p[2][1]} L${p[3][0]} ${p[3][1]}`);
+    // selectionHandles.dragzone.setAttribute("d", `M${p[0][0]} ${p[0][1]} L${p[1][0]} ${p[1][1]} L${p[2][0]} ${p[2][1]} L${p[3][0]} ${p[3][1]}`);
     if (selectionHandles.elements.length === 1) {
         const element = selectionHandles.elements[0];
         updateElementPoints(element, selectionHandles.points);
@@ -740,10 +749,6 @@ function initSelectionHandles() {
     var invisibleVertices = [];
     var visibleEdges = [];
     var invisibleEdges = [];
-    var dragzone = document.createElementNS("http://www.w3.org/2000/svg", "path");
-    dragzone.setAttribute("fill", "transparent");
-    dragzone.setAttribute("stroke", "none");
-    svg.appendChild(dragzone);
 
     selectionHandles = {
         svg: svg,
@@ -753,115 +758,7 @@ function initSelectionHandles() {
         invisibleVertices: invisibleVertices,
         visibleEdges: visibleEdges,
         invisibleEdges: invisibleEdges,
-        dragzone: dragzone,
-        dragHandler: null
     }
-
-    var handleOffset;
-    var shiftOnMousedown;
-    var cancelClick;
-
-    dragzone.onwheel = (e) => {
-        var points = selectionHandles.points;
-        const rect = game.cachedGameRect;
-        const anchor = [
-            (e.pageX - rect.left) / rect.width * 100,
-            (e.pageY - rect.top) / rect.height * 100
-        ]
-        const scale = 1 + (e.deltaY / 1000);
-        for (let point of points) {
-            point[0] = anchor[0] + (point[0] - anchor[0]) * scale;
-            point[1] = anchor[1] + (point[1] - anchor[1]) * scale;
-        }
-        updateSelectionTransform();
-        e.preventDefault();
-    }
-    selectionHandles.dragHandler = new DragHandler({
-        onmousedown: (e) => {
-            if (editMode !== "select") return;
-            document.querySelector(":focus")?.blur();
-            cancelClick = false;
-            const rect = game.cachedGameRect;
-            const x = (e.pageX - rect.left) / rect.width * 100;
-            const y = (e.pageY - rect.top) / rect.height * 100;
-            shiftOnMousedown = shiftKey;
-            for (const element of selectionHandles.elements) {
-                if (!shiftKey)
-                    bringElementToFront(element);
-            }
-            const origin = getPointsTopLeft(selectionHandles.points);
-            handleOffset = [origin[0] - x, origin[1] - y];
-            focusGameContainer();
-            e.stopPropagation();
-        },
-        ondrag: (e) => {
-            if (editMode !== "select") return;
-            cancelClick = Math.abs(e.mousedownPosition[0] - e.pageX) + Math.abs(e.mousedownPosition[1] - e.pageY) > 3;
-            const rect = game.cachedGameRect;
-            const x = (e.pageX - rect.left) / rect.width * 100;
-            const y = (e.pageY - rect.top) / rect.height * 100;
-            setSelectionHandlesTopLeft([handleOffset[0] + x, handleOffset[1] + y]);
-        },
-        ondragend: (e) => {
-            if (!(
-                selectionHandles.points[0][0] < 100 &&
-                selectionHandles.points[2][0] > 0 &&
-                selectionHandles.points[0][1] < 100 &&
-                selectionHandles.points[2][0] > 0
-            )) {
-                console.log("out of bounds selection deleted.");
-                deleteSelectedElements();
-                save();
-                return;
-            }
-            if (
-                !shiftOnMousedown ||
-                Math.abs(e.mousedownPosition[0] - e.pageX) + Math.abs(e.mousedownPosition[1] - e.pageY) > 0
-            ) {
-                save();
-            } else if (shiftOnMousedown) {
-                const rect = game.cachedGameRect;
-                for (const element of selectionHandles.elements) {
-                    var mm = getElementMinMax(element);
-                    mm.min = [
-                        mm.min[0] / 100 * rect.width,
-                        mm.min[1] / 100 * rect.height
-                    ]
-                    mm.max = [
-                        mm.max[0] / 100 * rect.width,
-                        mm.max[1] / 100 * rect.height
-                    ]
-                    const x = e.pageX - rect.left;
-                    const y = e.pageY - rect.top;
-                    if (x >= mm.min[0] && x <= mm.max[0] && y >= mm.min[1] && y <= mm.max[1]) {
-                        deselectElement(element);
-                        break;
-                    }
-                }
-            }
-        },
-        threshold: 0
-    }).attach(dragzone);
-    dragzone.onclick = () => {
-        if (!cancelClick && selectionHandles.elements.length === 1) {
-            openElementInspector(selectionHandles.elements[0]);
-            setTimeout(() => {
-                const textarea = editorInspector.querySelector("textarea");
-                if (textarea) {
-                    textarea.focus();
-                    textarea.selectionStart = textarea.selectionEnd = textarea.value.length;
-                    editorInspector.onmousedown();
-                }
-            }, 1);
-        }
-    }
-    dragzone.addEventListener("contextmenu", e => {
-        for (let i=selectionHandles.elements.length-1; i>=0; i--) {
-            sendElementToBack(selectionHandles.elements[i]);
-        }
-        save();
-        e.preventDefault();
-    })
 
     for (let i = 0; i < 4; i++) {
         // edges
