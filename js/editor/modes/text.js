@@ -73,6 +73,7 @@ const textDragHandler = new DragHandler({
                     [x2, y2],
                     [x1, y2]
                 ]);
+                updateSelectionHandles();
             }
             if (element.innerHTML.trim() === "") {
                 htmlInput.style.borderColor = "red";
