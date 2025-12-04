@@ -217,8 +217,10 @@ class EditorGame extends Game {
             textarea.setAttribute("autocapitalize", "off");
             textarea.setAttribute("spellcheck", "off");
             textarea.addEventListener("input", function () {
+                const previousScrollPosition = document.querySelector(".fh-inspector").scrollTop;
                 this.style.height = "";
                 this.style.height = (this.scrollHeight + 2) + "px";
+                document.querySelector(".fh-inspector").scrollTop = previousScrollPosition;
             })
             textarea.addEventListener("keydown", textareaKeydown);
         }

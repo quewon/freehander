@@ -222,8 +222,11 @@ function openElementInspector(element) {
         const htmlInput = fh_element_inspector.querySelector("[name=html]");
         htmlInput.onkeydown = e => {
             if (shiftKey && e.key === 'Enter') {
-                element.innerHTML += "<br>";
-                htmlInput.value += "<br>";
+                const start = htmlInput.selectionStart;
+                const end = htmlInput.selectionEnd;
+                htmlInput.value = htmlInput.value.substring(0, start) + "<br>" + htmlInput.value.substring(end);
+                htmlInput.selectionStart = start + 4;
+                htmlInput.selectionEnd = start + 4;
             }
         }
         htmlInput.style.borderColor = "";
