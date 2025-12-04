@@ -143,21 +143,23 @@ function renameElement(element, name, preview) {
         }
     }
 }
+function resetFit(element) {
+    const origin = getElementCenter(element);
+    element.removeAttribute("data-x1");
+    element.removeAttribute("data-y1");
+    element.removeAttribute("data-x2");
+    element.removeAttribute("data-y2");
+    element.removeAttribute("data-x3");
+    element.removeAttribute("data-y3");
+    element.removeAttribute("data-x4");
+    element.removeAttribute("data-y4");
+    updateElementPoints(element, createElementPointsArray(element));
+    setElementCenter(element, origin);
+}
 function setElementHTML(element, html) {
     element.innerHTML = html;
-    if (element.dataset.fithtml) {
-        var origin = getElementTopLeft(element);
-        element.removeAttribute("data-x1");
-        element.removeAttribute("data-y1");
-        element.removeAttribute("data-x2");
-        element.removeAttribute("data-y2");
-        element.removeAttribute("data-x3");
-        element.removeAttribute("data-y3");
-        element.removeAttribute("data-x4");
-        element.removeAttribute("data-y4");
-        updateElementPoints(element, createElementPointsArray(element));
-        setElementTopLeft(element, origin);
-    }
+    if (element.dataset.fithtml)
+        resetFit(element);
     if (element.getAttribute("name") in openElements) {
         game.updateTransform(element);
         if (openElements[element.getAttribute("name")].clickzone.classList.contains("selected")) {
@@ -253,17 +255,7 @@ function openElementInspector(element) {
         fitCheckbox.onchange = () => {
             if (fitCheckbox.checked) {
                 element.dataset.fithtml = "true";
-                var center = getElementCenter(element);
-                element.removeAttribute("data-x1");
-                element.removeAttribute("data-y1");
-                element.removeAttribute("data-x2");
-                element.removeAttribute("data-y2");
-                element.removeAttribute("data-x3");
-                element.removeAttribute("data-y3");
-                element.removeAttribute("data-x4");
-                element.removeAttribute("data-y4");
-                updateElementPoints(element, createElementPointsArray(element));
-                setElementCenter(element, center);
+                resetFit(element);
             } else {
                 element.removeAttribute("data-fithtml");
             }
@@ -299,20 +291,9 @@ function openElementInspector(element) {
             styleElement.textContent = cssInput.value;
             for (let name in openElements) {
                 const element = openElements[name].element;
-                if (element.dataset.fithtml) {
-                    var origin = getElementTopLeft(element);
-                    element.removeAttribute("data-x1");
-                    element.removeAttribute("data-y1");
-                    element.removeAttribute("data-x2");
-                    element.removeAttribute("data-y2");
-                    element.removeAttribute("data-x3");
-                    element.removeAttribute("data-y3");
-                    element.removeAttribute("data-x4");
-                    element.removeAttribute("data-y4");
-                    updateElementPoints(element, createElementPointsArray(element));
-                    setElementTopLeft(element, origin);
-                }
                 game.updateTransform(element);
+                if (element.dataset.fithtml)
+                    resetFit(element);
             }
             updateSlidePreview(element);
         }
@@ -352,27 +333,15 @@ function openElementInspector(element) {
     fh_inspect_element.classList.add("selected");
 }
 function updateElementPoints(element, points) {
-    var min = [Infinity, Infinity];
-    var max = [-Infinity, -Infinity];
-    for (let i = 0; i < 4; i++) {
-        let point = points[i];
-        min = [
-            Math.min(point[0], min[0]),
-            Math.min(point[1], min[1])
-        ]
-        max = [
-            Math.max(point[0], max[0]),
-            Math.max(point[1], max[1])
-        ]
-    }
+    const mm = getPointsMinMax(points);
 
     if (element.parentElement === game.currentSlide) {
         const data = openElements[element.getAttribute("name")];
         const clickzone = data.clickzone;
-        clickzone.style.left = min[0] + "%";
-        clickzone.style.top = min[1] + "%";
-        clickzone.style.width = (max[0] - min[0]) + "%";
-        clickzone.style.height = (max[1] - min[1]) + "%";
+        clickzone.style.left = mm.min[0] + "%";
+        clickzone.style.top = mm.min[1] + "%";
+        clickzone.style.width = (mm.max[0] - mm.min[0]) + "%";
+        clickzone.style.height = (mm.max[1] - mm.min[1]) + "%";
     }
 
     element.dataset.x1 = points[0][0];
@@ -567,7 +536,7 @@ function createEditorClickzone(element) {
                 const el = openElements[name].element;
                 if (!shiftKey)
                     bringElementToFront(el);
-                const origin = getElementTopLeft(el);
+                const origin = getElementCenter(el);
                 grabOffsets.push([
                     origin[0] - x,
                     origin[1] - y
@@ -590,7 +559,7 @@ function createEditorClickzone(element) {
                 const clickzone = grabbedClickzones[i];
                 const element = openElements[clickzone.getAttribute("name")].element;
                 const offset = grabOffsets[i];
-                setElementTopLeft(element, [offset[0] + x, offset[1] + y]);
+                setElementCenter(element, [offset[0] + x, offset[1] + y]);
             }
             if (selectionHandles.elements.includes(element))
                 setSelectionHandlesTopLeft([handleOffset[0] + x, handleOffset[1] + y]);
@@ -666,6 +635,7 @@ function updateSelectionHandles() {
         updateSelectionTransform();
     } else {
         selectionHandles.svg.remove();
+        selectionHandles.elements = [];
     }
 }
 function updateSelectionTransform() {
@@ -691,13 +661,6 @@ function updateSelectionTransform() {
         if (p[0] > max[0]) max[0] = p[0];
         if (p[1] > max[1]) max[1] = p[1];
     }
-    const p = selectionHandles.points.map((point) => {
-        return [
-            point[0] / 100 * game.cachedGameRect.width,
-            point[1] / 100 * game.cachedGameRect.height
-        ]
-    });
-    // selectionHandles.dragzone.setAttribute("d", `M${p[0][0]} ${p[0][1]} L${p[1][0]} ${p[1][1]} L${p[2][0]} ${p[2][1]} L${p[3][0]} ${p[3][1]}`);
     if (selectionHandles.elements.length === 1) {
         const element = selectionHandles.elements[0];
         updateElementPoints(element, selectionHandles.points);
