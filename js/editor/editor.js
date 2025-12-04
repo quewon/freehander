@@ -77,10 +77,15 @@ async function saveDocument() {
     var file = await createGameFile();
     var filename = `${game.gameElement.dataset.title}.html`;
     if ('showSaveFilePicker' in self) {
-        var fileHandle = await showSaveFilePicker({ id: 'export-location', startIn: "documents", suggestedName: filename });
-        var writeable = await fileHandle.createWritable();
-        await writeable.write(file);
-        await writeable.close();
+        try {
+            var fileHandle = await showSaveFilePicker({ id: 'export-location', startIn: "documents", suggestedName: filename });
+            var writeable = await fileHandle.createWritable();
+            await writeable.write(file);
+            await writeable.close();
+        }
+        catch (err) {
+            console.error(err);
+        }
     } else {
         var url = URL.createObjectURL(file);
         var a = document.createElement("a");
@@ -115,15 +120,19 @@ async function exportDocument() {
     zip.generateAsync({ type: 'blob' }).then(async content => {
         var filename = `${game.gameElement.dataset.title}.zip`;
         if ('showSaveFilePicker' in self) {
-            var fileHandle = await showSaveFilePicker({ id: 'export-location', startIn: "documents", suggestedName: filename });
-            var writeable = await fileHandle.createWritable();
-            await writeable.write(content);
-            await writeable.close();
+            try {
+                var fileHandle = await showSaveFilePicker({ id: 'export-location', startIn: "documents", suggestedName: filename });
+                var writeable = await fileHandle.createWritable();
+                await writeable.write(content);
+                await writeable.close();
+            }
+            catch (err) {
+                console.error(err);
+            }
         } else {
             saveAs(content, filename);
         }
     })
-
     refreshMedia();
 }
 function loadDocument() {

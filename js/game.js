@@ -256,15 +256,18 @@ class Game {
     exitSlide(slide) {
         if (slide.dataset.onexit)
             this.runScript(slide.dataset.onexit, slide);
-        for (let element of slide.querySelectorAll("[src]")) {
-            const src = element.getAttribute("src");
-            if (src.trim() !== "") {
-                element.setAttribute("data-src", src);
-                element.setAttribute("src", "");
+        for (const element of slide.children) {
+            if (!element.classList.contains("fh-element")) continue;
+            for (let source of element.querySelectorAll("[src]")) {
+                const src = source.getAttribute("src");
+                if (src.trim() !== "") {
+                    source.setAttribute("data-src", src);
+                    source.setAttribute("src", "");
+                }
             }
-        }
-        for (let media of slide.querySelectorAll("audio, video")) {
-            media.pause();
+            for (let media of element.querySelectorAll("audio, video")) {
+                media.pause();
+            }
         }
     }
 
@@ -272,17 +275,18 @@ class Game {
         if (slide.dataset.onenter)
             this.runScript(slide.dataset.onenter, slide);
         for (let element of slide.children) {
-            if (!element.classList.contains("hidden") && element.classList.contains("fh-element") && element.dataset.onshow) {
-                this.runScript(element.dataset.onshow, element);
+            if (!element.classList.contains("hidden") && element.classList.contains("fh-element")) {
+                if (element.dataset.onshow)
+                    this.runScript(element.dataset.onshow, element);
+                for (let source of element.querySelectorAll("[data-src]")) {
+                    const src = source.getAttribute("data-src");
+                    if (src.trim() !== "")
+                        source.setAttribute("src", src);
+                }
+                for (let media of element.querySelectorAll("audio[autoplay], video[autoplay]")) {
+                    media.play();
+                }
             }
-        }
-        for (let element of slide.querySelectorAll("[data-src]")) {
-            const src = element.getAttribute("data-src");
-            if (src.trim() !== "")
-                element.setAttribute("src", src);
-        }
-        for (let media of slide.querySelectorAll("audio[autoplay], video[autoplay]")) {
-            media.play();
         }
     }
 
@@ -293,6 +297,16 @@ class Game {
 
         if (!this.currentSlide) {
             this.currentSlide = this.gameElement;
+            for (let element of this.gameElement.querySelectorAll("[src]")) {
+                const src = element.getAttribute("src");
+                if (src.trim() !== "") {
+                    element.setAttribute("data-src", src);
+                    element.setAttribute("src", "");
+                }
+            }
+            for (let media of this.gameElement.querySelectorAll("audio, video")) {
+                media.pause();
+            }
         }
 
         const previousSlide = this.currentSlide;
@@ -352,6 +366,14 @@ class Game {
             if (element.dataset.onshow) {
                 this.runScript(element.dataset.onshow, element);
             }
+            for (let source of element.querySelectorAll("[data-src]")) {
+                const src = source.getAttribute("data-src");
+                if (src.trim() !== "")
+                    source.setAttribute("src", src);
+            }
+            for (let media of element.querySelectorAll("audio[autoplay], video[autoplay]")) {
+                media.play();
+            }
         }
     }
 
@@ -361,6 +383,16 @@ class Game {
             const clickzone = this.findElementClickzone(element);
             element.classList.add("hidden");
             if (clickzone) clickzone.classList.add("hidden");
+            for (let source of element.querySelectorAll("[src]")) {
+                const src = source.getAttribute("src");
+                if (src.trim() !== "") {
+                    source.setAttribute("data-src", src);
+                    source.setAttribute("src", "");
+                }
+            }
+            for (let media of element.querySelectorAll("audio, video")) {
+                media.pause();
+            }
         }
     }
 
@@ -380,7 +412,7 @@ class Game {
         return new Promise(resolve => {
             var clickListener = () => {
                 resolve();
-                document.removeEventListener("click", clickListener);
+                document.removeEventListener("mouseup", clickListener);
                 document.removeEventListener("keydown", keyListener);
             }
             var keyListener = (e) => {
@@ -388,11 +420,11 @@ class Game {
                     return;
                 if (e.key === " ") {
                     resolve();
-                    document.removeEventListener("click", clickListener);
+                    document.removeEventListener("mouseup", clickListener);
                     document.removeEventListener("keydown", keyListener);
                 }
             }
-            document.addEventListener("click", clickListener);
+            document.addEventListener("mouseup", clickListener);
             document.addEventListener("keydown", keyListener);
         })
     }
