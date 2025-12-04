@@ -716,6 +716,7 @@ function setSelectionHandlesTopLeft(origin) {
     updateSelectionTransform();
 }
 function startSelectionDrag(e) {
+    deselectAllElements();
     selectionHandles.dragHandler.eventListener.bind(selectionHandles.dragHandler)(e);
 }
 function initSelectionHandles() {
