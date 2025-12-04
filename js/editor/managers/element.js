@@ -3,7 +3,7 @@ import { shiftKey } from '../utils/shortcuts.js';
 import { DragHandler } from '../utils/dragdrop.js';
 import { save } from '../utils/history.js';
 import { mediaFolder } from './media.js';
-import { updateSlidePreview, findSlidePreview, reorderPreviews } from './slide.js';
+import { updateSlidePreview, findSlidePreview, reorderPreviews, addSlide } from './slide.js';
 import { general2DProjection, matrix_multv } from '../../matrix.js';
 import { getPointsMinMax, getPointsCenter, getPointsTopLeft } from '../utils/rect.js';
 
@@ -87,6 +87,7 @@ function deleteElement(element) {
             game.currentSlide = null;
 
         preview.remove();
+        reorderPreviews();
         element.remove();
         reorderPreviews();
 
@@ -143,6 +144,7 @@ function renameElement(element, name, preview) {
     }
 }
 function resetFit(element) {
+    if (!(element.getAttribute("name") in openElements)) return;
     const origin = getElementTopLeft(element);
     element.removeAttribute("data-x1");
     element.removeAttribute("data-y1");
@@ -157,9 +159,9 @@ function resetFit(element) {
 }
 function setElementHTML(element, html) {
     element.innerHTML = html;
-    if (element.dataset.fithtml)
-        resetFit(element);
     if (element.getAttribute("name") in openElements) {
+        if (element.dataset.fithtml)
+            resetFit(element);
         game.updateTransform(element);
         if (openElements[element.getAttribute("name")].clickzone.classList.contains("selected")) {
             updateSelectionHandles();
