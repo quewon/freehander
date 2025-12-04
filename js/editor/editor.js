@@ -202,6 +202,11 @@ class EditorGame extends Game {
             fh_document_fallback_message.remove();
 
         for (let textarea of editorInspector.querySelectorAll("textarea")) {
+            textarea.style.width = "100%";
+            textarea.setAttribute("autocomplete", "off");
+            textarea.setAttribute("autocorrect", "off");
+            textarea.setAttribute("autocapitalize", "off");
+            textarea.setAttribute("spellcheck", "off");
             textarea.addEventListener("input", function () {
                 this.style.height = "";
                 this.style.height = (this.scrollHeight + 2) + "px";

@@ -324,12 +324,8 @@ function openElementInspector(element) {
     nameInput.value = element.getAttribute("name");
     nameInput.onchange = save;
 
-    for (let textarea of editorInspector.querySelectorAll("textarea")) {
-        textarea.setAttribute("autocomplete", "off");
-        textarea.setAttribute("autocorrect", "off");
-        textarea.setAttribute("autocapitalize", "off");
-        textarea.setAttribute("spellcheck", "off");
-        textarea.style.width = "100%";
+    for (const textarea of editorInspector.querySelectorAll("textarea")) {
+        textarea.style.height = "0";
         textarea.style.height = (textarea.scrollHeight + 2) + "px";
     }
 
