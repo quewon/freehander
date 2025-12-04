@@ -14,7 +14,7 @@ function clearHistory() {
 // save, undo, redo
 function save() {
     console.log("saved.");
-    history.push(document.querySelector(".fh-game").innerHTML);
+    history.push(document.querySelector(".fh-game").outerHTML);
     if (history.length > 1000)
         history.shift();
     undos = [];
@@ -38,7 +38,7 @@ function redo() {
 }
 function restoreState(state) {
     document.querySelector(":focus")?.blur();
-    document.querySelector(".fh-game").innerHTML = state;
+    document.querySelector(".fh-game").outerHTML = state;
 
     Game.prototype.init.call(game, document.querySelector(".fh-game"));
     reorderPreviews();

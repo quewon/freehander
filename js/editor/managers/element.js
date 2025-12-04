@@ -833,6 +833,7 @@ function initSelectionHandles() {
                 if (textarea) {
                     textarea.focus();
                     textarea.selectionStart = textarea.selectionEnd = textarea.value.length;
+                    editorInspector.onmousedown();
                 }
             }, 1);
         }

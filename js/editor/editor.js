@@ -71,10 +71,13 @@ async function playGame() {
     // var url = URL.createObjectURL(blob);
     // window.open(url, "_blank").focus();
 
-    const newWindow = window.open();
-    newWindow.document.open();
-    newWindow.document.write(await blob.text());
-    newWindow.document.close();
+    // const newWindow = window.open();
+    // newWindow.document.open();
+    // newWindow.document.write(await blob.text());
+    // newWindow.document.close();
+
+    sessionStorage.setItem("playstate", await blob.text());
+    window.open("/play", "_blank").focus();
 }
 async function saveDocument() {
     for (let asset of game.gameElement.querySelectorAll("[data-filepath]")) {

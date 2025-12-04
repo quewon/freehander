@@ -4,11 +4,12 @@
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title></title>
-    <!-- _FH_GAME_STYLE -->
+    <link rel="stylesheet" href="/css/game.css">
 </head>
-<body><!-- _FH_DATA_START --><!-- _FH_DATA_END --></body>
-<!-- _FH_GAME_MODULE -->
-<script>
+<body></body>
+<script type="module">
+    import { Game } from '/js/game.js';
+    document.body.innerHTML = sessionStorage.getItem("playstate");
     new Game(document.querySelector(".fh-game"));
 </script>
 </html>
