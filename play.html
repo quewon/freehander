@@ -9,7 +9,7 @@
 <body></body>
 <script type="module">
     import { Game } from '/js/game.js';
-    document.body.innerHTML = sessionStorage.getItem("playstate");
+    document.body.innerHTML = localStorage.getItem("savestate");
     new Game(document.querySelector(".fh-game"));
 </script>
 </html>

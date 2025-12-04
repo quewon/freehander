@@ -121,6 +121,8 @@ class Game {
     }
 
     updateTransform(element, points) {
+        if (!this.cachedGameRect) return;
+        
         points = points || this.createElementPointsArray(element);
         transform2d(
             element,

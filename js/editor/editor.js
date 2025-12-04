@@ -4,7 +4,7 @@ import { doodleDragHandler } from "./modes/doodle.js";
 import { textDragHandler } from "./modes/text.js";
 import { selectDragHandler } from "./modes/select.js";
 
-import { clearHistory, save } from './utils/history.js';
+import { clearHistory, save, restoreState } from './utils/history.js';
 import { initMedia, refreshMedia, mediaFolder } from "./managers/media.js";
 import { initShortcuts, textareaKeydown } from "./utils/shortcuts.js";
 import { findSlidePreview, updateSlidePreview, updateSlidePreviewScale, reorderPreviews, clearSlidePreviews, createPreviewsFromElement, slidesContainer } from "./managers/slide.js";
@@ -67,7 +67,7 @@ async function playGame() {
         }
         asset.setAttribute("src", referenceElement.dataset.url);
     }
-    sessionStorage.setItem("playstate", game.gameElement.outerHTML);
+    localStorage.setItem("savestate", game.gameElement.outerHTML);
     window.open("/play", "_blank").focus();
 }
 async function saveDocument() {
@@ -175,7 +175,7 @@ function focusGameContainer() {
 }
 
 class EditorGame extends Game {
-    constructor(gameElement) {
+    constructor() {
         gameContainer.onmousedown = (e) => {
             document.querySelector(":focus")?.blur();
             focusGameContainer();
@@ -232,7 +232,16 @@ class EditorGame extends Game {
         initSelectionHandles();
         initShortcuts();
 
-        super(gameElement);
+        const state = localStorage.getItem("savestate");
+        if (state) {
+            console.log(state);
+            document.querySelector(".fh-game").outerHTML = state;
+        }
+        window.onbeforeunload = () => {
+            localStorage.setItem("savestate", document.querySelector(".fh-game").outerHTML);
+        }
+
+        super(document.querySelector(".fh-game"));
     }
 
     init(gameElement) {

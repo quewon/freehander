@@ -1,7 +1,7 @@
 import { Game } from '../../game.js';
 import { game, openDocumentInspector } from '../editor.js';
 import { reorderPreviews } from '../managers/slide.js';
-import { openMediaInspector } from '../managers/media.js';
+import { openMediaInspector, refreshMedia } from '../managers/media.js';
 import { openElementInspector } from '../managers/element.js';
 
 var history = [];
@@ -13,8 +13,9 @@ function clearHistory() {
 
 // save, undo, redo
 function save() {
-    console.log("saved.");
-    history.push(document.querySelector(".fh-game").outerHTML);
+    const state = document.querySelector(".fh-game").outerHTML;
+    // localStorage.setItem("savestate", state);
+    history.push(state);
     if (history.length > 1000)
         history.shift();
     undos = [];
@@ -39,6 +40,7 @@ function redo() {
 function restoreState(state) {
     document.querySelector(":focus")?.blur();
     document.querySelector(".fh-game").outerHTML = state;
+    // localStorage.setItem("savestate", state);
 
     Game.prototype.init.call(game, document.querySelector(".fh-game"));
     reorderPreviews();
@@ -48,7 +50,8 @@ function restoreState(state) {
         openDocumentInspector();
     else
         openElementInspector();
+    refreshMedia();
     document.querySelector(":focus")?.blur();
 }
 
-export { clearHistory, save, undo, redo };
+export { clearHistory, restoreState, save, undo, redo };
