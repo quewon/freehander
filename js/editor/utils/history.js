@@ -1,6 +1,6 @@
 import { Game } from '../../game.js';
 import { game, openDocumentInspector } from '../editor.js';
-import { reorderPreviews } from '../managers/slide.js';
+import { reorderPreviews, slidesContainer } from '../managers/slide.js';
 import { openMediaInspector, refreshMedia } from '../managers/media.js';
 import { openElementInspector } from '../managers/element.js';
 
@@ -10,11 +10,8 @@ var undos = [];
 function clearHistory() {
     history = [];
 }
-
-// save, undo, redo
 function save() {
     const state = document.querySelector(".fh-game").outerHTML;
-    // localStorage.setItem("savestate", state);
     history.push(state);
     if (history.length > 1000)
         history.shift();
@@ -38,20 +35,13 @@ function redo() {
     }
 }
 function restoreState(state) {
+    const slideContainerScrollTop = slidesContainer.parentElement.scrollTop;
     document.querySelector(":focus")?.blur();
     document.querySelector(".fh-game").outerHTML = state;
-    // localStorage.setItem("savestate", state);
-
+    const currentSlidePath = game.getPath(game.currentSlide);
     Game.prototype.init.call(game, document.querySelector(".fh-game"));
-    reorderPreviews();
-    if (!fh_media_inspector.classList.contains("hidden"))
-        openMediaInspector();
-    else if (!fh_document_inspector.classList.contains("hidden"))
-        openDocumentInspector();
-    else
-        openElementInspector();
-    refreshMedia();
-    document.querySelector(":focus")?.blur();
+    game.goto(currentSlidePath || game.gameElement.querySelector(".fh-slide.open"));
+    slidesContainer.parentElement.scrollTop = slideContainerScrollTop;
 }
 
 export { clearHistory, restoreState, save, undo, redo };

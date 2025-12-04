@@ -1,8 +1,7 @@
 import { game, editorInspector, editMode, switchMode } from '../editor.js';
-import { createElement, updateElementPoints, selectElement, startSelectionDrag } from './element.js';
+import { openElements, createElement, updateElementPoints, selectElement } from './element.js';
 import { get, set, del } from '../lib/idb-keyval.js';
 import { loadAssetFolder } from "../utils/folder.js";
-import { updateSlidePreview, updateSlidePreviewScale, slidesContainer } from './slide.js';
 
 var mediaFolder;
 
@@ -100,7 +99,12 @@ function createMediaFolder(files) {
             } else if (type === "audio") {
                 html = `<audio autoplay loop controls><source data-filepath="${filepath}" type="${format}"></audio>`;
             } else if (type === "text") {
-                html = file.querySelector("[name=text]").textContent;
+                const text = file.querySelector("[name=text]").textContent;
+                if (format === "text/html" && text.indexOf("<html") !== -1) {
+                    html = `<iframe width="${game.cachedGameRect.width/2}" height="${game.cachedGameRect.height/2}" data-filepath="${file.dataset.filepath}" frameBorder="0"></iframe>`;
+                } else {
+                    html = text;
+                }
             }
 
             const element = createElement(
@@ -148,7 +152,8 @@ function createMediaFolder(files) {
             }
 
             selectElement(element);
-            startSelectionDrag(e);
+            const clickzone = openElements[element.getAttribute("name")].clickzone;
+            clickzone.dispatchEvent(new MouseEvent("mousedown", e));
         }
     }
 

@@ -26,6 +26,8 @@ available script commands:
 - show(element_path);
 - hide(element_path);
 
+these functions are also tied to the global window.game variable. if you want to call them from an embedded html file (iframe), use [window.top.game](https://developer.mozilla.org/en-US/docs/Web/API/Window/top).
+
 #### pathing
 
 path syntax is important. relative paths (e.g. "slide1/element1") start searching among children (subslides, elements) of the current slide. to go to a sibling of the current slide, prepend "../" to the path. absolute paths (e.g. "/slide1/element1") can also be used, in which searches start among root slides.

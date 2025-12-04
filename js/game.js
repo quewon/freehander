@@ -296,6 +296,8 @@ class Game {
     }
 
     goto(path) {
+        path = path || this.gameElement.querySelector(".fh-slide");
+
         for (let slide of this.gameElement.querySelectorAll(".fh-slide.open")) {
             slide.classList.remove("open");
         }
@@ -319,7 +321,6 @@ class Game {
 
         for (let open of this.gameElement.querySelectorAll(".open"))
             open.classList.remove("open");
-
         var slide = this.currentSlide;
         while (slide !== this.gameElement) {
             slide.classList.add("open");

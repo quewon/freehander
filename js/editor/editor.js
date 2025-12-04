@@ -16,7 +16,6 @@ var gameContainer = document.querySelector(".fh-game-container");
 var editorOverlay = document.querySelector(".fh-editor-overlay");
 var editorInspector = document.querySelector(".fh-inspector");
 
-// modes
 function switchMode(modename) {
     editMode = modename || "select";
     fh_doodle_tooltip.classList.add("hidden");
@@ -32,7 +31,26 @@ function switchMode(modename) {
     document.getElementById(`fh_${editMode}_mode`).classList.add("selected");
 }
 
+function cleanGameHTML() {
+    for (const element of game.gameElement.querySelectorAll(".fh-element, .fh-slide")) {
+        // i don't know why this is necessary
+        element.removeAttribute("style");
+    }
+    for (const source of game.gameElement.querySelectorAll("[data-src]")) {
+        source.setAttribute("src", source.dataset.src);
+        source.removeAttribute("data-src");
+    }
+    for (const source of game.gameElement.querySelectorAll("[data-filepath]")) {
+        source.removeAttribute("src");
+    }
+}
+
 async function createGameFile() {
+    cleanGameHTML();
+    for (const asset of game.gameElement.querySelectorAll("[data-filepath]")) {
+        asset.setAttribute("src", asset.dataset.filepath);
+    }
+
     var game_css = await fetch("/css/game.css").then(res => res.text());
     var game_module = await fetch("/js/game.js").then(res => res.text());
     var matrix_module = await fetch("/js/matrix.js").then(res => res.text());
@@ -45,12 +63,15 @@ async function createGameFile() {
     html = html.replace("<!-- _FH_GAME_STYLE -->", `<style>${game_css}</style>`);
     html = html.replace("<!-- _FH_GAME_MODULE -->", `<script>${game_module}</script>`);
 
-    const startString = "<!-- _FH_DATA_START -->";
-    const endString = "<!-- _FH_DATA_END -->";
-    html =
-        html.substring(0, html.indexOf(startString) + startString.length) +
-        game.gameElement.outerHTML +
-        html.substring(html.indexOf(endString), html.length);
+    html = html.replace(
+        "<!-- _FH_DATA_START --><!-- _FH_DATA_END -->", 
+        `<!-- _FH_DATA_START -->${game.gameElement.outerHTML}<!-- _FH_DATA_END -->`
+    );
+
+    refreshMedia();
+    console.clear();
+    console.log("console cleared--you would have seen a mess of failed GET requests here due to urls being changed for the save.");
+    game.goto(game.currentSlide);
 
     return new Blob([html], { type: "text/html" });
 }
@@ -71,9 +92,6 @@ async function playGame() {
     window.open("/play", "_blank").focus();
 }
 async function saveDocument() {
-    for (let asset of game.gameElement.querySelectorAll("[data-filepath]")) {
-        asset.setAttribute("src", asset.dataset.filepath);
-    }
     var file = await createGameFile();
     var filename = `${game.gameElement.dataset.title}.html`;
     if ('showSaveFilePicker' in self) {
@@ -93,7 +111,6 @@ async function saveDocument() {
         a.download = filename;
         a.click();
     }
-    refreshMedia();
 }
 async function exportDocument() {
     var mediaContained = {};
@@ -133,7 +150,6 @@ async function exportDocument() {
             saveAs(content, filename);
         }
     })
-    refreshMedia();
 }
 function loadDocument() {
     const input = document.querySelector("input[name=html_input]");
@@ -232,12 +248,13 @@ class EditorGame extends Game {
         initSelectionHandles();
         initShortcuts();
 
+        window.onbeforeunload = () => {
+            cleanGameHTML();
+            localStorage.setItem("savestate", document.querySelector(".fh-game").outerHTML);
+        }
         const state = localStorage.getItem("savestate");
         if (state) {
             document.querySelector(".fh-game").outerHTML = state;
-        }
-        window.onbeforeunload = () => {
-            localStorage.setItem("savestate", document.querySelector(".fh-game").outerHTML);
         }
 
         super(document.querySelector(".fh-game"));
@@ -324,7 +341,7 @@ class EditorGame extends Game {
             openElementInspector();
 
         if (mediaFolder) {
-            for (const asset of game.currentSlide.querySelectorAll("[data-filepath]")) {
+            for (const asset of game.gameElement.querySelectorAll(".fh-slide.open [data-filepath]")) {
                 const referenceElement = mediaFolder.querySelector(`[data-filepath="${asset.dataset.filepath}"]`);
                 if (!referenceElement) {
                     console.error(`media asset "${asset.dataset.filepath}" was not found.`);

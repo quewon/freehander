@@ -50,7 +50,7 @@ function getFolderStructure(files) {
             current[file.name] = {
                 kind: "file",
                 type: kind,
-                format: kind === "text" ? "text/plain" : file.type,
+                format: file.type,
                 path: file.relativePath || file.webkitRelativePath || file.path,
                 file: file
             }
@@ -93,7 +93,7 @@ function createFolderElement(parentElement, directoryName, parent) {
 
 function createFileElement(parentElement, filename, parent, type, format) {
     const file = parent[filename].file;
-    var url;
+    var url = URL.createObjectURL(file);
     if (type === "text") {
         var reader = new FileReader();
         reader.readAsText(file, "UTF-8");
@@ -107,8 +107,6 @@ function createFileElement(parentElement, filename, parent, type, format) {
                 })
             )
         }
-    } else {
-        url = URL.createObjectURL(file);
     }
     var previewElement;
     if (type === "image") {
@@ -136,8 +134,7 @@ function createFileElement(parentElement, filename, parent, type, format) {
             }),
         ]
     });
-    if (url)
-        el.dataset.url = url;
+    el.dataset.url = url;
     return el;
 }
 

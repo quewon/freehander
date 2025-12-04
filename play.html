@@ -10,6 +10,6 @@
 <script type="module">
     import { Game } from '/js/game.js';
     document.body.innerHTML = localStorage.getItem("savestate");
-    new Game(document.querySelector(".fh-game"));
+    window.game = new Game(document.querySelector(".fh-game"));
 </script>
 </html>

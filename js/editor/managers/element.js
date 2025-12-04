@@ -87,7 +87,6 @@ function deleteElement(element) {
             game.currentSlide = null;
 
         preview.remove();
-        reorderPreviews();
         element.remove();
         reorderPreviews();
 
@@ -491,6 +490,10 @@ function createEditorClickzone(element) {
             point[0] = anchor[0] + (point[0] - anchor[0]) * scale;
             point[1] = anchor[1] + (point[1] - anchor[1]) * scale;
         }
+        if (element.dataset.fithtml)
+            element.removeAttribute("data-fithtml");
+            if (selectionHandles.elements.length === 1)
+                openElementInspector(element);
         if (selectionHandles.elements.includes(element)) {
             updateSelectionTransform();
         } else {
@@ -503,6 +506,9 @@ function createEditorClickzone(element) {
             if (shiftKey && selectionHandles.elements.includes(element)) {
                 deselectElement(element);
             } else {
+                if (!shiftKey) {
+                    deselectAllElements();
+                }
                 selectElement(element);
             }
         }
@@ -703,10 +709,6 @@ function setSelectionHandlesTopLeft(origin) {
     }
     updateSelectionTransform();
 }
-function startSelectionDrag(e) {
-    deselectAllElements();
-    selectionHandles.dragHandler.eventListener.bind(selectionHandles.dragHandler)(e);
-}
 function initSelectionHandles() {
     const svg = document.createElementNS("http://www.w3.org/2000/svg", "svg");
     svg.setAttribute("class", "fh-element-handle");
@@ -901,4 +903,4 @@ function deleteSelectedElements() {
     }
 }
 
-export { openElements, createElement, deleteElement, deleteSelectedElements, renameElement, setElementHTML, selectElement, deselectElement, deselectAllElements, openElement, openElementInspector, updateElementPoints, getElementMinMax, getElementTopLeft, getElementCenter, setElementTopLeft, setElementCenter, sendElementToBack, bringElementToFront, isHTML, pasteHTML, createEditorClickzone, initSelectionHandles, updateSelectionHandles, startSelectionDrag, createElementPointsArray };
+export { openElements, createElement, deleteElement, deleteSelectedElements, renameElement, setElementHTML, selectElement, deselectElement, deselectAllElements, openElement, openElementInspector, updateElementPoints, getElementMinMax, getElementTopLeft, getElementCenter, setElementTopLeft, setElementCenter, sendElementToBack, bringElementToFront, isHTML, pasteHTML, createEditorClickzone, initSelectionHandles, updateSelectionHandles, createElementPointsArray };

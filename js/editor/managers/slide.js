@@ -246,6 +246,10 @@ function updateSlidePreview(slide) {
         else
             slide.classList.remove("open");
     }
+    for (const element of preview.querySelectorAll(".fh-element")) {
+        if (!element.style?.transform || element.style.transform === "")
+            game.updateTransform(element);
+    }
     for (const iframe of preview.querySelectorAll("iframe")) {
         iframe.src = "";
     }
@@ -353,14 +357,11 @@ function reorderPreviews() {
         if (parent && parent.classList.contains("collapsed")) {
             togglePreviewCollapse(parent);
         }
-        selectElement(getSlide(selectedPreview));
-        
         for (const slide of game.gameElement.querySelectorAll(".fh-slide.open")) {
             game.exitSlide(slide);
         }
-        const path = game.getPath(game.currentSlide);
         game.currentSlide = null;
-        game.goto(path);
+        game.goto(selectedPreview.dataset.path);
     }
 }
 function clearSlidePreviews() {
