@@ -295,7 +295,21 @@ function openElementInspector(element) {
         cssInput.oninput = () => {
             styleElement.textContent = cssInput.value;
             for (let name in openElements) {
-                game.updateTransform(openElements[name].element);
+                const element = openElements[name].element;
+                if (element.dataset.fithtml) {
+                    var origin = getElementTopLeft(element);
+                    element.removeAttribute("data-x1");
+                    element.removeAttribute("data-y1");
+                    element.removeAttribute("data-x2");
+                    element.removeAttribute("data-y2");
+                    element.removeAttribute("data-x3");
+                    element.removeAttribute("data-y3");
+                    element.removeAttribute("data-x4");
+                    element.removeAttribute("data-y4");
+                    updateElementPoints(element, createElementPointsArray(element));
+                    setElementTopLeft(element, origin);
+                }
+                game.updateTransform(element);
             }
             updateSlidePreview(element);
         }
