@@ -289,11 +289,10 @@ function openElementInspector(element) {
         cssInput.value = styleElement.textContent;
         cssInput.oninput = () => {
             styleElement.textContent = cssInput.value;
-            for (let name in openElements) {
-                const element = openElements[name].element;
-                game.updateTransform(element);
-                if (element.dataset.fithtml)
-                    resetFit(element);
+            for (const child of element.querySelectorAll(".fh-element")) {
+                game.updateTransform(child);
+                if (child.dataset.fithtml)
+                    resetFit(child);
             }
             updateSlidePreview(element);
         }

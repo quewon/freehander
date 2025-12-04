@@ -310,6 +310,8 @@ class EditorGame extends Game {
 
         findSlidePreview(game.currentSlide).classList.add("selected");
 
+        for (let name in openElements)
+            delete openElements[name];
         for (let element of game.currentSlide.children) {
             if (element.classList.contains("fh-element")) {
                 openElement(element);
