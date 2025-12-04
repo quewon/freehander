@@ -50,6 +50,9 @@ body {
 .fh-slide-preview-container * {
     animation: none !important;
 }
+.fh-slide {
+    pointer-events: auto;
+}
 
 .fh-inputs textarea, .fh-inputs input {
     box-sizing: border-box;

@@ -184,14 +184,12 @@ function initShortcuts() {
     document.addEventListener("keyup", e => {
         if (e.key === "Shift")
             shiftKey = false;
-        if (e.key === "Meta" || e.key === "Ctrl")
-            metaKey = false;
     })
 }
 
 function textareaKeydown(e) {
     const metaKey = e.metaKey || e.ctrlKey;
-    
+
     if (e.code === "Tab") {
         const start = this.selectionStart;
         const end = this.selectionEnd;

@@ -21,6 +21,7 @@ body, html {
     -moz-transform-origin: 0 0;
     -o-transform-origin: 0 0;
     will-change: transform;
+    pointer-events: auto;
 }
 .fh-clickzone {
     background: transparent;
@@ -29,6 +30,7 @@ body, html {
     cursor: pointer;
     z-index: 1;
     color: transparent;
+    pointer-events: auto;
 }
 .fh-clickzone:hover {
     border: 1px solid gray;
@@ -50,6 +52,7 @@ body, html {
     height: 100%;
     display: none;
     z-index: 2;
+    pointer-events: none;
 }
 .fh-slide.open {
     display: block;
