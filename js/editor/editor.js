@@ -67,16 +67,7 @@ async function playGame() {
         }
         asset.setAttribute("src", referenceElement.dataset.url);
     }
-    var blob = await createGameFile();
-    // var url = URL.createObjectURL(blob);
-    // window.open(url, "_blank").focus();
-
-    // const newWindow = window.open();
-    // newWindow.document.open();
-    // newWindow.document.write(await blob.text());
-    // newWindow.document.close();
-
-    sessionStorage.setItem("playstate", await blob.text());
+    sessionStorage.setItem("playstate", game.gameElement.outerHTML);
     window.open("/play", "_blank").focus();
 }
 async function saveDocument() {

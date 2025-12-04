@@ -160,6 +160,9 @@ function setElementHTML(element, html) {
     }
     if (element.getAttribute("name") in openElements) {
         game.updateTransform(element);
+        if (openElements[element.getAttribute("name")].clickzone.classList.contains("selected")) {
+            updateSelectionHandles();
+        }
     }
     updateSlidePreview(element.parentElement);
 }
