@@ -350,6 +350,9 @@ class Game {
         }
 
         if (this.cachedGameRect) {
+            for (let element of document.querySelectorAll(".fh-slide.open > .fh-element")) {
+                this.updateTransform(element);
+            }
             requestAnimationFrame(() => {
                 requestAnimationFrame(() => {
                     for (let element of document.querySelectorAll(".fh-slide.open > .fh-element")) {
