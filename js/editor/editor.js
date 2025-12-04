@@ -4,7 +4,7 @@ import { doodleDragHandler } from "./modes/doodle.js";
 import { textDragHandler } from "./modes/text.js";
 import { selectDragHandler } from "./modes/select.js";
 
-import { clearHistory, save, restoreState } from './utils/history.js';
+import { clearHistory, save } from './utils/history.js';
 import { initMedia, refreshMedia, mediaFolder } from "./managers/media.js";
 import { initShortcuts, textareaKeydown } from "./utils/shortcuts.js";
 import { findSlidePreview, updateSlidePreview, updateSlidePreviewScale, reorderPreviews, clearSlidePreviews, createPreviewsFromElement, slidesContainer } from "./managers/slide.js";
@@ -271,7 +271,10 @@ class EditorGame extends Game {
         editorOverlay.style.width = game.gameElement.style.width;
         editorOverlay.style.height = game.gameElement.style.height;
         if (this.cachedGameRect) {
+            var closedSlides = [];
             for (let slide of game.gameElement.querySelectorAll(".fh-slide")) {
+                if (!slide.classList.contains("open"))
+                    closedSlides.push(slide);
                 slide.classList.add("open");
             }
             for (let element of game.gameElement.querySelectorAll(".fh-slide > .fh-element")) {
@@ -283,7 +286,8 @@ class EditorGame extends Game {
             for (let preview of slidesContainer.querySelectorAll(".fh-slide-preview-bg")) {
                 updateSlidePreviewScale(preview);
             }
-            game.goto(game.currentSlide);
+            for (let slide of closedSlides)
+                slide.classList.remove("open");
         }
         var tooltipPosition = fh_doodle_mode.getBoundingClientRect();
         fh_doodle_tooltip.style.left = tooltipPosition.left + "px";
@@ -316,6 +320,17 @@ class EditorGame extends Game {
 
         if (fh_inspect_element.classList.contains("selected"))
             openElementInspector();
+
+        if (mediaFolder) {
+            for (const asset of game.currentSlide.querySelectorAll("[data-filepath]")) {
+                const referenceElement = mediaFolder.querySelector(`[data-filepath="${asset.dataset.filepath}"]`);
+                if (!referenceElement) {
+                    console.error(`media asset "${asset.dataset.filepath}" was not found.`);
+                } else {
+                    asset.setAttribute("src", referenceElement.dataset.url);
+                }
+            }
+        }
     }
 
     async runScript(script) { }

@@ -317,7 +317,7 @@ class Game {
         const previousSlide = this.currentSlide;
         this.currentSlide = typeof path === "string" ? this.getElementAtPath(path) : path;
 
-        for (let open of document.querySelectorAll(".open"))
+        for (let open of this.gameElement.querySelectorAll(".open"))
             open.classList.remove("open");
 
         var slide = this.currentSlide;
@@ -355,7 +355,7 @@ class Game {
         }
 
         if (this.cachedGameRect) {
-            for (let element of document.querySelectorAll(".fh-slide.open > .fh-element")) {
+            for (let element of this.gameElement.querySelectorAll(".fh-slide.open > .fh-element")) {
                 this.updateTransform(element);
             }
         }

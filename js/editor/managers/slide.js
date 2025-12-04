@@ -1,5 +1,5 @@
 import { DragHandler } from '../utils/dragdrop.js';
-import { deleteElement, renameElement, selectElement } from './element.js';
+import { deleteElement, openElementInspector, renameElement, selectElement } from './element.js';
 import { game } from '../editor.js';
 import { save } from '../utils/history.js';
 
@@ -175,6 +175,7 @@ function createSlidePreview(slide) {
 
     container.onmousedown = () => {
         game.goto(container.dataset.path);
+        openElementInspector(slide);
     }
 
     const previewBg = document.createElement("div");
@@ -225,6 +226,7 @@ function togglePreviewCollapse(preview) {
         nextPreview.style.display = hidden ? "none" : "block";
         nextPreview = nextPreview.nextElementSibling;
     }
+    updateSlidePreview(game.getElementAtPath(preview.dataset.path));
 }
 function getParentPreview(preview) {
     var parentPreview = preview.previousElementSibling;
@@ -235,15 +237,20 @@ function getParentPreview(preview) {
 }
 function updateSlidePreview(slide) {
     slide = slide || game.currentSlide;
-    var preview = findSlidePreview(slide)?.querySelector(".fh-slide-preview");
-    if (preview) {
-        preview.innerHTML = slide.innerHTML;
-        for (const iframe of preview.querySelectorAll("iframe")) {
-            iframe.src = "";
-        }
-        for (const media of preview.querySelectorAll("[autoplay]")) {
-            media.removeAttribute("autoplay");
-        }
+    const previewContainer = findSlidePreview(slide);
+    const preview = previewContainer.querySelector(".fh-slide-preview");
+    preview.innerHTML = slide.innerHTML;
+    for (const slide of preview.querySelectorAll(".fh-slide")) {
+        if (previewContainer.classList.contains("collapsed"))
+            slide.classList.add("open");
+        else
+            slide.classList.remove("open");
+    }
+    for (const iframe of preview.querySelectorAll("iframe")) {
+        iframe.src = "";
+    }
+    for (const media of preview.querySelectorAll("[autoplay]")) {
+        media.removeAttribute("autoplay");
     }
 }
 function updateSlidePreviewScale(preview) {

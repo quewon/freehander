@@ -2,6 +2,7 @@ import { game, editorInspector, editMode, switchMode } from '../editor.js';
 import { createElement, updateElementPoints, selectElement, startSelectionDrag } from './element.js';
 import { get, set, del } from '../lib/idb-keyval.js';
 import { loadAssetFolder } from "../utils/folder.js";
+import { updateSlidePreview, updateSlidePreviewScale, slidesContainer } from './slide.js';
 
 var mediaFolder;
 
@@ -160,18 +161,16 @@ async function refreshMedia() {
 
     if (!mediaFolder) return;
 
-    for (let asset of game.gameElement.querySelectorAll("[data-filepath]")) {
+    for (const asset of game.gameElement.querySelectorAll("[data-filepath]")) {
         const referenceElement = mediaFolder.querySelector(`[data-filepath="${asset.dataset.filepath}"]`);
         if (!referenceElement) {
             console.error(`media asset "${asset.dataset.filepath}" was not found.`);
-            break;
+        } else {
+            asset.setAttribute("src", referenceElement.dataset.url);
         }
-        asset.setAttribute("src", referenceElement.dataset.url);
     }
 
-    setTimeout(() => {
-        game.onresize();
-    }, 500);
+    game.onresize();
 }
 function openMediaInspector() {
     for (let inspectors of editorInspector.children)

@@ -501,7 +501,11 @@ function createEditorClickzone(element) {
     }
     clickzone.onmouseup = (e) => {
         if (!cancelClick && editMode === "select" && e.button === 0) {
-            selectElement(element);
+            if (shiftKey && selectionHandles.elements.includes(element)) {
+                deselectElement(element);
+            } else {
+                selectElement(element);
+            }
         }
     }
     new DragHandler({
@@ -511,7 +515,7 @@ function createEditorClickzone(element) {
 
             if (!shiftKey && !clickzone.classList.contains("selected")) {
                 for (let name in openElements) {
-                    if (openElements[name].clickzone.classList.contains("selected"))
+                    if (selectionHandles.elements.includes(element))
                         deselectElement(openElements[name].element);
                 }
             }

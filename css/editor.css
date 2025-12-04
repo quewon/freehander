@@ -68,7 +68,6 @@ body {
 }
 
 .fh-slides-container {
-    color-scheme: initial;
     box-sizing: border-box;
     display: flex;
     flex-direction: column;
@@ -106,8 +105,9 @@ body {
 .fh-slide-preview-bg {
     position: relative;
     width: 100%;
-    background: var(--primary);
-    color: var(--background);
+    color-scheme: initial;
+    background: white;
+    color: black;
     border: 1px solid gray;
     box-sizing: border-box;
     pointer-events: none;
@@ -136,7 +136,7 @@ body {
 .fh-slide-preview-container.dragging.selected {
     background: transparent;
 }
-.dragging .fh-slide-preview {
+.dragging .fh-slide-preview-bg {
     background: transparent;
     border-left: 1em solid var(--accent);
 }
