@@ -4,14 +4,13 @@ import { slidesContainer, addSlide, deleteSelectedSlides } from '../managers/sli
 import { deleteElement, pasteHTML, selectElement, deselectElement, openElementInspector, openElements, deleteSelectedElements } from '../managers/element.js';
 
 var shiftKey = false;
-var metaKey = false;
 
 function initShortcuts() {
     document.addEventListener("keydown", e => {
+        const metaKey = e.metaKey || e.ctrlKey;
+
         if (e.key === "Shift")
             shiftKey = true;
-        else if (e.key === "Meta" || e.key === "Ctrl")
-            metaKey = true;
 
         if (metaKey) {
             switch (e.code) {
@@ -191,6 +190,8 @@ function initShortcuts() {
 }
 
 function textareaKeydown(e) {
+    const metaKey = e.metaKey || e.ctrlKey;
+    
     if (e.code === "Tab") {
         const start = this.selectionStart;
         const end = this.selectionEnd;
@@ -244,4 +245,4 @@ function textareaKeydown(e) {
     }
 }
 
-export { initShortcuts, shiftKey, metaKey, textareaKeydown };
+export { initShortcuts, shiftKey, textareaKeydown };
