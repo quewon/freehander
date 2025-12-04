@@ -8,9 +8,7 @@ class Game {
 
     constructor(gameElement) {
         this.init(gameElement);
-        window.onresize = window.onload = () => {
-            this.onresize();
-        }
+        window.onresize = window.onload = this.onresize.bind(this);
     }
 
     init(gameElement) {
@@ -350,9 +348,13 @@ class Game {
         }
 
         if (this.cachedGameRect) {
-            for (let element of document.querySelectorAll(".fh-slide.open > .fh-element")) {
-                this.updateTransform(element);
-            }
+            requestAnimationFrame(() => {
+                requestAnimationFrame(() => {
+                    for (let element of document.querySelectorAll(".fh-slide.open > .fh-element")) {
+                        this.updateTransform(element);
+                    }
+                })
+            })
         }
     }
 
