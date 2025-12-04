@@ -842,6 +842,13 @@ function initSelectionHandles() {
             }, 1);
         }
     }
+    dragzone.addEventListener("contextmenu", e => {
+        for (let i=selectionHandles.elements.length-1; i>=0; i--) {
+            sendElementToBack(selectionHandles.elements[i]);
+        }
+        save();
+        e.preventDefault();
+    })
 
     for (let i = 0; i < 4; i++) {
         // edges
