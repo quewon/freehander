@@ -71,7 +71,9 @@ async function createGameFile() {
     refreshMedia();
     console.clear();
     console.log("console cleared--you would have seen a mess of failed GET requests here due to urls being changed for the save.");
-    game.goto(game.currentSlide);
+    const currentSlide = game.currentSlide;
+    game.currentSlide = null;
+    game.goto(currentSlide);
 
     return new Blob([html], { type: "text/html" });
 }
