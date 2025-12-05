@@ -199,7 +199,7 @@ class Game {
         if (path.length > 0 && path[path.length - 1] === "/") {
             path = path.substring(0, path.length - 1);
         }
-        var originalSlide = this.currentSlide;
+        const originalSlide = this.currentSlide;
         var element = this.currentSlide;
         var ignoreSpecialParts = false;
         for (let part of path.split("/")) {
@@ -351,7 +351,6 @@ class Game {
                 slidesEntered.shift();
             }
 
-            const currentSlide = this.currentSlide;
             for (let s of slidesExited) {
                 this.currentSlide = s;
                 this.exitSlide(s);
@@ -360,7 +359,6 @@ class Game {
                 this.currentSlide = s;
                 this.enterSlide(s);
             }
-            this.currentSlide = currentSlide;
         }
 
         if (this.cachedGameRect) {
