@@ -249,9 +249,13 @@ function updateSlidePreview(slide) {
     for (const element of preview.querySelectorAll(".fh-element")) {
         if (!element.style?.transform || element.style.transform === "")
             game.updateTransform(element);
-    }
-    for (const iframe of preview.querySelectorAll("iframe")) {
-        iframe.src = "";
+        for (const iframe of element.querySelectorAll("iframe")) {
+            const fake = document.createElement("div");
+            fake.className = "fh-fake-iframe";
+            fake.style.width = iframe.width + "px";
+            fake.style.height = iframe.height + "px";
+            iframe.replaceWith(fake);
+        }
     }
     for (const media of preview.querySelectorAll("[autoplay]")) {
         media.removeAttribute("autoplay");

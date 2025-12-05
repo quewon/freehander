@@ -285,8 +285,10 @@ class Game {
                     this.runScript(element.dataset.onshow, element);
                 for (let source of element.querySelectorAll("[data-src]")) {
                     const src = source.getAttribute("data-src");
-                    if (src.trim() !== "")
+                    if (src.trim() !== "") {
                         source.setAttribute("src", src);
+                        source.removeAttribute("data-src");
+                    }
                 }
                 for (let media of element.querySelectorAll("audio[autoplay], video[autoplay]")) {
                     media.play();
