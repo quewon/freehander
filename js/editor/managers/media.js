@@ -1,5 +1,5 @@
 import { game, editorInspector, editMode, switchMode } from '../editor.js';
-import { openElements, createElement, updateElementPoints, selectElement } from './element.js';
+import { openElements, createElement, updateElementPoints, selectElement, deselectAllElements } from './element.js';
 import { get, set, del } from '../lib/idb-keyval.js';
 import { loadAssetFolder } from "../utils/folder.js";
 
@@ -151,6 +151,7 @@ function createMediaFolder(files) {
                 ]);
             }
 
+            deselectAllElements();
             selectElement(element);
             const clickzone = openElements[element.getAttribute("name")].clickzone;
             clickzone.dispatchEvent(new MouseEvent("mousedown", e));
