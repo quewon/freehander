@@ -302,9 +302,10 @@ function openElementInspector(element) {
         nameInput = fh_slide_inspector.querySelector("[name=rename]");
     }
 
-    nameInput.onchange = nameInput.onblur = function () {
+    nameInput.oninput = function () {
         if (!element.parentElement) return;
         var name = this.value.trim();
+        if (name === "") return;
         var nameExists = true;
         while (nameExists) {
             nameExists = false;
@@ -317,10 +318,13 @@ function openElementInspector(element) {
         }
         if (name !== element.getAttribute("name")) {
             renameElement(element, name);
+            save();
         }
     }
+    nameInput.onblur = function() {
+        this.value = element.getAttribute("name");
+    }
     nameInput.value = element.getAttribute("name");
-    nameInput.onchange = save;
 
     for (const textarea of editorInspector.querySelectorAll("textarea")) {
         textarea.style.height = "0";
@@ -504,7 +508,7 @@ function createEditorClickzone(element) {
         e.preventDefault();
     }
     clickzone.onmouseup = (e) => {
-        if (!cancelClick && editMode === "select" && e.button === 0) {
+        if (!window.fh_selection_box && editMode === "select" && e.button === 0) {
             if (shiftKey && selectionHandles.elements.includes(element)) {
                 deselectElement(element);
             } else {

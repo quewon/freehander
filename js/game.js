@@ -80,8 +80,9 @@ class Game {
                 clickzone.style.width = (max[0] - min[0]) + "%";
                 clickzone.style.height = (max[1] - min[1]) + "%";
 
-                clickzone.onclick = () => {
+                clickzone.onclick = (e) => {
                     this.runScript(element.dataset.onclick, element);
+                    e.stopPropagation();
                 };
                 element.parentElement.appendChild(clickzone);
             }
