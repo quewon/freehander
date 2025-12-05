@@ -483,6 +483,7 @@ function createEditorClickzone(element) {
     var handleOffset;
     var cancelClick = false;
     var shiftOnMousedown;
+    var wheelEndTimeout;
 
     clickzone.onwheel = (e) => {
         var points = selectionHandles.elements.includes(element) ? selectionHandles.points : createElementPointsArray(element);
@@ -505,6 +506,8 @@ function createEditorClickzone(element) {
         } else {
             updateElementPoints(element, points);
         }
+        clearTimeout(wheelEndTimeout);
+        wheelEndTimeout = setTimeout(save, 100);
         e.preventDefault();
     }
     clickzone.onmouseup = (e) => {
