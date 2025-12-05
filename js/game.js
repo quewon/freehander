@@ -292,7 +292,8 @@ class Game {
                     }
                 }
                 for (let media of element.querySelectorAll("audio[autoplay], video[autoplay]")) {
-                    media.play();
+                    media.load();
+                    media.oncanplaythrough = media.play.bind(media);
                 }
             }
         }
@@ -350,12 +351,16 @@ class Game {
                 slidesEntered.shift();
             }
 
+            const currentSlide = this.currentSlide;
             for (let s of slidesExited) {
+                this.currentSlide = s;
                 this.exitSlide(s);
             }
             for (let s of slidesEntered) {
+                this.currentSlide = s;
                 this.enterSlide(s);
             }
+            this.currentSlide = currentSlide;
         }
 
         if (this.cachedGameRect) {
@@ -381,7 +386,8 @@ class Game {
                     source.setAttribute("src", src);
             }
             for (let media of element.querySelectorAll("audio[autoplay], video[autoplay]")) {
-                media.play();
+                media.load();
+                media.oncanplaythrough = media.play.bind(media);
             }
         }
     }
