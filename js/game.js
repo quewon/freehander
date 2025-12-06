@@ -282,19 +282,7 @@ class Game {
             this.runScript(slide.dataset.onenter, slide);
         for (let element of slide.children) {
             if (!element.classList.contains("hidden") && element.classList.contains("fh-element")) {
-                if (element.dataset.onshow)
-                    this.runScript(element.dataset.onshow, element);
-                for (let source of element.querySelectorAll("[data-src]")) {
-                    const src = source.getAttribute("data-src");
-                    if (src.trim() !== "") {
-                        source.setAttribute("src", src);
-                        source.removeAttribute("data-src");
-                    }
-                }
-                for (let media of element.querySelectorAll("audio[autoplay], video[autoplay]")) {
-                    media.load();
-                    media.oncanplaythrough = media.play.bind(media);
-                }
+                this.show(this.getPath(element));
             }
         }
     }
@@ -351,10 +339,12 @@ class Game {
                 slidesEntered.shift();
             }
 
+            const currentSlide = this.currentSlide;
             for (let s of slidesExited) {
                 this.currentSlide = s;
                 this.exitSlide(s);
             }
+            this.currentSlide = currentSlide;
             for (let s of slidesEntered) {
                 this.currentSlide = s;
                 this.enterSlide(s);
