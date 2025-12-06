@@ -210,8 +210,10 @@ function togglePreviewCollapse(preview) {
     preview.classList.toggle("collapsed");
     if (preview.classList.contains("collapsed")) {
         button.textContent = ">";
+        game.getElementAtPath(preview.getAttribute("data-path")).classList.add("collapsed");
     } else {
         button.textContent = "v";
+        game.getElementAtPath(preview.getAttribute("data-path")).classList.remove("collapsed");
     }
     var inset = parseInt(preview.dataset.inset);
     var nextPreview = preview.nextElementSibling;
@@ -377,6 +379,9 @@ function createPreviewsFromElement(element) {
         if (child.classList.contains("fh-slide")) {
             createSlidePreview(child);
             createPreviewsFromElement(child);
+            if (child.classList.contains("collapsed")) {
+                togglePreviewCollapse(findSlidePreview(child));
+            }
         }
     }
 }
