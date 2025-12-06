@@ -3,7 +3,7 @@ import { shiftKey } from '../utils/shortcuts.js';
 import { DragHandler } from '../utils/dragdrop.js';
 import { save } from '../utils/history.js';
 import { mediaFolder } from './media.js';
-import { updateSlidePreview, findSlidePreview, reorderPreviews, addSlide } from './slide.js';
+import { updateSlidePreview, findSlidePreview, reorderPreviews, addSlide, createSlidePreview, slidesContainer } from './slide.js';
 import { general2DProjection, matrix_multv } from '../../matrix.js';
 import { getPointsMinMax, getPointsCenter, getPointsTopLeft } from '../utils/rect.js';
 
@@ -463,7 +463,7 @@ function pasteHTML(html, parent) {
                 }
                 previousPreview.after(preview);
             }
-            preview.classList.remove("selected");
+            game.goto(game.getPath(element));
         } else {
             if (parent === game.currentSlide) {
                 openElement(element);
