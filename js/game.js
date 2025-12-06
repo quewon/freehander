@@ -415,7 +415,7 @@ class Game {
         return new Promise(resolve => {
             var clickListener = () => {
                 resolve();
-                document.removeEventListener("mouseup", clickListener);
+                document.removeEventListener("mousedown", clickListener);
                 document.removeEventListener("keydown", keyListener);
             }
             var keyListener = (e) => {
@@ -423,11 +423,11 @@ class Game {
                     return;
                 if (e.key === " ") {
                     resolve();
-                    document.removeEventListener("mouseup", clickListener);
+                    document.removeEventListener("mousedown", clickListener);
                     document.removeEventListener("keydown", keyListener);
                 }
             }
-            document.addEventListener("mouseup", clickListener);
+            document.addEventListener("mousedown", clickListener);
             document.addEventListener("keydown", keyListener);
         })
     }
