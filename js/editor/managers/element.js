@@ -511,7 +511,7 @@ function createEditorClickzone(element) {
         e.preventDefault();
     }
     clickzone.onmouseup = (e) => {
-        if (!window.fh_selection_box && editMode === "select" && e.button === 0) {
+        if (!cancelClick && !window.fh_selection_box && editMode === "select" && e.button === 0) {
             if (shiftKey && selectionHandles.elements.includes(element)) {
                 deselectElement(element);
             } else {
